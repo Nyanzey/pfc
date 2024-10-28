@@ -4,8 +4,9 @@ import sys
 import numpy as np
 import openai
 import re
-client = openai.OpenAI()
+#client = openai.OpenAI()
 
+"""
 def query_openai_api(user_prompt, system_prompt, model):
     completion = client.chat.completions.create(
     model=model,
@@ -40,7 +41,8 @@ def query_image_api(prompt, model):
         n=1,
     )
     return response.data[0].url
-
+"""
+    
 def get_txt_prompt(type, input):
     with open(f"./staticPrompts/{type}.txt", 'r') as file:
         prompt = file.read()
@@ -110,4 +112,38 @@ def parse_final_prompt(response):
     if match:
         return match.group(1).strip()
     else:
-        return None  # Return None if no match found
+        return None
+    
+def DC_to_string(DC):
+    result = []
+
+    # Process characters
+    if "characters" in DC:
+        for character, description in DC["characters"].items():
+            result.append(f"[{character}]({description})")
+
+    # Process scene
+    if "scene" in DC:
+        result.append(f"[Scene]({DC['scene']})")
+
+    return "\n".join(result)
+
+def DC_to_descriptions(DC):
+    result = []
+
+    # Process characters
+    if "characters" in DC:
+        for character, description in DC["characters"].items():
+            result.append(f'{character}:"{description}"')
+
+    # Process scene
+    if "scene" in DC:
+        description = DC['scene']
+        result.append(f'Scene:"{description}"')
+
+    return "\n".join(result)
+
+with open("./dynamicPrompts/segments.txt", 'r') as file:
+    segments = file.read()
+
+print(parse_segment(segments))
