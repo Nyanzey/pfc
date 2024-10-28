@@ -1,0 +1,16 @@
+Given the description of the following characters and scene in the format:
+
+Format:
+
+[<character name>](<description of character appearance>)[<character
+name>](<description of character appearance>)....[<character name>](
+<description of character appearance>)[scene](<description of scene>)
+
+Descriptions:
+
+![descriptions]
+
+Filter the descriptions based on the following Considerations:
+- Descriptions dont reference other characters
+- Only intrinsic aspects of the characters appearance and scene are kept
+- The output descriptions must have the same format as the input

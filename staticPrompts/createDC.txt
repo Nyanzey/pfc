@@ -1,0 +1,36 @@
+Task: Given the following story labeled as "Narrative," complete these tasks:
+
+# Character Description:
+
+-Identify and describe the physical appearance of each character the moment they first appear in the story.
+-Include details such as body build, hair color/style, clothing, and any notable accessories (e.g., hats, jewelry).
+-If the story lacks explicit descriptions, create appropriate visual characteristics based on the narrative context.
+
+# Scene Description:
+
+-Describe the visual characteristics of the first scene in the story, including surroundings, objects, weather, lighting, and overall atmosphere.
+-Do not include references to characters in the description of the scene
+
+# Considerations:
+
+-Be as detailed as possible, especially when describing colors, textures, and other visual features.
+-Focus on specificity to help a text-to-image model generate characters and scenes accurately.
+-Include only the initial appearance of characters. Ignore any changes that occur later in the story.
+-For scenes or characters lacking explicit details, infer details from the context and describe them creatively.
+
+# Output Format: For each character and scene, use the following format:
+
+[<character name>](<detailed description of character appearance>)[<character name>](<detailed description of character appearance>)
+...[scene](<detailed description of first scene>)
+
+Example:
+
+Narrative: Once upon a time, there was a dear little girl who was loved by everyone who looked at her, but most of all by her grandmother. The grandmother had given her a little red velvet cap, which suited her so well that she would never wear anything else. She was known as Little Red Riding Hood.
+
+Response:
+
+[Little Red Riding Hood](A small girl with a slim build, wearing a bright red velvet hooded cape. Her hair is chestnut brown, tied in loose braids falling past her shoulders. She is wearing a simple white cotton dress beneath the cape, with a pair of black leather shoes. Her pale skin and bright, curious eyes give her a lively appearance.)[Grandmother](A frail, elderly woman with silver hair tied up in a bun. She is wearing a long brown woolen dress and a white apron. Her face is wrinkled but kind, with a gentle smile. Her eyes are soft, framed by round spectacles resting on her nose.)[scene](The scene opens in a small, cozy cottage surrounded by a lush green forest. The sunlight filters through the trees, casting dappled shadows on the ground. A path leads from the cottage's wooden door into the forest, and the smell of fresh pine fills the air. A gentle breeze rustles the leaves.)
+
+Narrative:
+
+![narrative]
