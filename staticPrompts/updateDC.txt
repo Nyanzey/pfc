@@ -1,4 +1,4 @@
-Given the description of the following characters:
+Given the description of the following characters and scene:
 
 ![descriptions]
 

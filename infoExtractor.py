@@ -4,10 +4,13 @@ import sys
 import numpy as np
 import openai
 import re
+from pathlib import Path
 #client = openai.OpenAI()
 
-"""
+
 def query_openai_api(user_prompt, system_prompt, model):
+    pass
+"""
     completion = client.chat.completions.create(
     model=model,
     messages=[
@@ -31,14 +34,15 @@ def query_openai_api(user_prompt, system_prompt, model):
         }
     ])
     return completion.choices[0].message
-
+"""
 def query_image_api(prompt, model):
+    pass
+"""
     response = client.images.generate(
-        model=model,
         prompt=prompt,
-        size="1024x1024",
-        quality="standard",
         n=1,
+        size="1024x1024",
+        response_format="url"
     )
     return response.data[0].url
 """
@@ -76,8 +80,11 @@ def parse_DC(response):
     for name, description in characters:
         parsed_data["characters"][name] = description.strip()
 
+    if 'Scene' in parsed_data["characters"]:
+        del parsed_data["characters"]['Scene']
+
     # Find the scene description
-    scene_pattern = r'\[scene\]\((.*?)\)'
+    scene_pattern = r'\[Scene\]\((.*?)\)'
     scene_match = re.search(scene_pattern, response)
     
     if scene_match:
@@ -97,8 +104,8 @@ def parse_segment(response):
     for fragment, appearance_change, scene_change, prompt in matches:
         parsed_data.append({
             "fragment": fragment.strip(),
-            "appearance_change": appearance_change.strip(),
-            "scene_change": scene_change.strip(),
+            "appearance_change": True if appearance_change.strip() == 'YES' else False,
+            "scene_change": True if scene_change.strip() == 'YES' else False,
             "prompt": prompt.strip()
         })
 
@@ -142,8 +149,4 @@ def DC_to_descriptions(DC):
         result.append(f'Scene:"{description}"')
 
     return "\n".join(result)
-
-with open("./dynamicPrompts/segments.txt", 'r') as file:
-    segments = file.read()
-
-print(parse_segment(segments))
+    
