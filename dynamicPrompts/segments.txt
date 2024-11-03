@@ -1,39 +1,29 @@
-[Once upon a time there was a dear little girl who was loved by every one who looked at her, but most of all by her grandmother, and there was nothing that she would not have given to the child. Once she gave her a little cap of red velvet, which suited her so well that she would never wear anything else. So she was always called Little Red Riding Hood.][NO-NO](A little girl with a red velvet hood being adored by everyone around her, with a kind elderly woman holding a gift, a red velvet cap, that the girl is putting on.)
+[Once upon a time there was a dear little girl who was loved by every one who looked at her, but most of all by her grandmother, and there was nothing that she would not have given to the child. Once she gave her a little cap of red velvet, which suited her so well that she would never wear anything else. So she was always called Little Red Riding Hood.][YES-NO](A little girl wearing a red velvet cap, smiling, with a grandmother giving her the cap lovingly)[One day her mother said to her, "Come, Little Red Riding Hood, here is a piece of cake and a bottle of wine. Take them to your grandmother, she is ill and weak, and they will do her good. Set out before it gets hot, and when you are going, walk nicely and quietly and do not run off the path, or you may fall and break the bottle, and then your grandmother will get nothing. And when you go into her room, don't forget to say, good-morning, and don't peep into every corner before you do it."
 
-[One day her mother said to her, "Come, Little Red Riding Hood, here is a piece of cake and a bottle of wine. Take them to your grandmother, she is ill and weak, and they will do her good. Set out before it gets hot, and when you are going, walk nicely and quietly and do not run off the path, or you may fall and break the bottle, and then your grandmother will get nothing. And when you go into her room, don't forget to say, good-morning, and don't peep into every corner before you do it."][NO-NO](A mother giving a cake and bottle of wine to Little Red Riding Hood while instructing her on how to behave on her journey.)
+I will take great care, said Little Red Riding Hood to her mother, and gave her hand on it.][NO-YES](Little Red Riding Hood's mother handing her a basket with cake and a bottle of wine, with Little Red Riding Hood nodding seriously beside her mother in a cozy kitchen)[The grandmother lived out in the wood, half a league from the village, and just as Little Red Riding Hood entered the wood, a wolf met her. Little Red Riding Hood did not know what a wicked creature he was, and was not at all afraid of him.
 
-["I will take great care," said Little Red Riding Hood to her mother, and gave her hand on it.][NO-NO](Little Red Riding Hood nodding and promising to her mother that she will be careful.)
+"Good-day, Little Red Riding Hood," said he.
 
-[The grandmother lived out in the wood, half a league from the village, and just as Little Red Riding Hood entered the wood, a wolf met her. Little Red Riding Hood did not know what a wicked creature he was, and was not at all afraid of him.][YES-YES](Little Red Riding Hood walking into a dense, shadowy forest, a wolf lurking nearby, but she doesn't appear scared.)
+"Thank you kindly, wolf."
 
-["Good-day, Little Red Riding Hood," said he.][NO-NO](A wolf speaking to Little Red Riding Hood politely in the middle of the woods.)
+"Whither away so early, Little Red Riding Hood?"
 
-["Thank you kindly, wolf."][NO-NO](Little Red Riding Hood responding courteously to the wolf.)
+"To my grandmother's."
 
-["Whither away so early, Little Red Riding Hood?"][NO-NO](The wolf curiously asking Little Red Riding Hood where she is heading.)
+"What have you got in your apron?"
 
-["To my grandmother's."][NO-NO](Little Red Riding Hood answering the wolf.)
+"Cake and wine. Yesterday was baking-day, so poor sick grandmother is to have something good, to make her stronger."
 
-["What have you got in your apron?"][NO-NO](The wolf asking what Little Red Riding Hood is carrying in her apron.)
+"Where does your grandmother live, Little Red Riding Hood?"
 
-["Cake and wine. Yesterday was baking-day, so poor sick grandmother is to have something good, to make her stronger."][NO-NO](Little Red Riding Hood explaining the contents of her apron to the wolf.)
+"A good quarter of a league farther on in the wood. Her house stands under the three large oak-trees, the nut-trees are just below. You surely must know it," replied Little Red Riding Hood.][NO-YES](A young girl with a red velvet cap talking to a wolf in a dense forest, with tall trees surrounding them)[The wolf thought to himself, "What a tender young creature. What a nice plump mouthful, she will be better to eat than the old woman. I must act craftily, so as to catch both." So he walked for a short time by the side of Little Red Riding Hood, and then he said, "see Little Red Riding Hood, how pretty the flowers are about here. Why do you not look round. I believe, too, that you do not hear how sweetly the little birds are singing. You walk gravely along as if you were going to school, while everything else out here in the wood is merry."][NO-NO](The wolf walking beside Little Red Riding Hood in the forest, pretending to admire the flowers and birds, with a cunning expression on his face)[Little Red Riding Hood raised her eyes, and when she saw the sunbeams dancing here and there through the trees, and pretty flowers growing everywhere, she thought, suppose I take grandmother a fresh nosegay. That would please her too. It is so early in the day that I shall still get there in good time. And so she ran from the path into the wood to look for flowers. And whenever she had picked one, she fancied that she saw a still prettier one farther on, and ran after it, and so got deeper and deeper into the wood.][NO-NO](Little Red Riding Hood picking flowers in a sun-dappled forest, surrounded by colorful blossoms and shafts of sunlight)[Meanwhile the wolf ran straight to the grandmother's house and knocked at the door.
 
-["Where does your grandmother live, Little Red Riding Hood?"][NO-NO](The wolf continuing to question her about her grandmother’s location.)
+"Who is there?"
 
-["A good quarter of a league farther on in the wood. Her house stands under the three large oak-trees, the nut-trees are just below. You surely must know it," replied Little Red Riding Hood.][NO-NO](Little Red Riding Hood describing the location of her grandmother’s house to the wolf.)
+"Little Red Riding Hood," replied the wolf. "She is bringing cake and wine. Open the door."
 
-[The wolf thought to himself, "What a tender young creature. What a nice plump mouthful, she will be better to eat than the old woman. I must act craftily, so as to catch both." So he walked for a short time by the side of Little Red Riding Hood, and then he said, "See Little Red Riding Hood, how pretty the flowers are about here. Why do you not look round? I believe, too, that you do not hear how sweetly the little birds are singing. You walk gravely along as if you were going to school, while everything else out here in the wood is merry."][NO-NO](The wolf, walking beside Little Red Riding Hood, thinking sinister thoughts while pretending to admire the flowers and the birds.)
+"Lift the latch," called out the grandmother, "I am too weak, and cannot get up."
 
-[Little Red Riding Hood raised her eyes, and when she saw the sunbeams dancing here and there through the trees, and pretty flowers growing everywhere, she thought, suppose I take grandmother a fresh nosegay. That would please her too. It is so early in the day that I shall still get there in good time. And so she ran from the path into the wood to look for flowers. And whenever she had picked one, she fancied that she saw a still prettier one farther on, and ran after it, and so got deeper and deeper into the wood.][NO-YES](Little Red Riding Hood wandering deeper into the woods, picking flowers with the sunlight filtering through the trees.)
+The wolf lifted the latch, the door sprang open, and without saying a word he went straight to the grandmother's bed, and devoured her. Then he put on her clothes, dressed himself in her cap, laid himself in bed and drew the curtains.][YES-YES](The wolf at grandmother's house, wearing her clothes and cap, lying in bed with the curtains drawn)[Little Red Riding Hood, however, had been running about picking flowers, and when she had gathered so many that she could carry no more, she remembered her grandmother, and set out on the way to her.][NO-YES](Little Red Riding Hood with arms full of flowers, looking determined as she makes her way back onto the path)[She was surprised to find the cottage-door standing open, and when she went into the room, she had such a strange feeling that she said to herself, oh dear, how uneasy I feel to-day, and at other times I like being with grandmother so much.
 
-[Meanwhile the wolf ran straight to the grandmother's house and knocked at the door.][YES-YES](The wolf arriving at the grandmother’s cozy cottage hidden in the woods, knocking on the door.)
-
-["Who is there?"][NO-NO](The grandmother calling out weakly from her bed.)
-
-["Little Red Riding Hood," replied the wolf. "She is bringing cake and wine. Open the door."][NO-NO](The wolf pretending to be Little Red Riding Hood, speaking through the door.)
-
-["Lift the latch," called out the grandmother, "I am too weak, and cannot get up."][NO-NO](The grandmother, still unaware of the danger, asking for the door to be opened.)
-
-[The wolf lifted the latch, the door sprang open, and without saying a word he went straight to the grandmother's bed, and devoured her. Then he put on her clothes, dressed himself in her cap, laid himself in bed and drew the curtains.][NO-YES](The wolf devouring the grandmother, then dressing in her nightclothes and cap, settling into the bed.)
-
-[Little Red Riding Hood, however, had been running about picking flowers, and when she had gathered so many that she could carry no more, she remembered her grandmother, and set out on the way to her.][YES-NO](Little Red Riding Hood, arms full of flowers, heading back toward her grandmother’s house through the forest.)
+She called out, "Good morning," but received no answer. So she went to the bed and drew back the curtains. There lay her grandmother with her cap pulled far over her face, and looking very strange.][NO-NO](Little Red Riding Hood inside the cottage, looking puzzled, drawing back the curtains on the bed to reveal the wolf disguised as her grandmother)

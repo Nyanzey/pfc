@@ -5,47 +5,6 @@ import numpy as np
 import openai
 import re
 from pathlib import Path
-#client = openai.OpenAI()
-
-
-def query_openai_api(user_prompt, system_prompt, model):
-    pass
-"""
-    completion = client.chat.completions.create(
-    model=model,
-    messages=[
-        {
-            "role": "system",
-            "content": [
-                {
-                "type": "text",
-                "text": system_prompt
-                }
-            ]
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                "type": "text",
-                "text": user_prompt
-                }
-            ]
-        }
-    ])
-    return completion.choices[0].message
-"""
-def query_image_api(prompt, model):
-    pass
-"""
-    response = client.images.generate(
-        prompt=prompt,
-        n=1,
-        size="1024x1024",
-        response_format="url"
-    )
-    return response.data[0].url
-"""
     
 def get_txt_prompt(type, input):
     with open(f"./staticPrompts/{type}.txt", 'r') as file:
@@ -80,11 +39,11 @@ def parse_DC(response):
     for name, description in characters:
         parsed_data["characters"][name] = description.strip()
 
-    if 'Scene' in parsed_data["characters"]:
-        del parsed_data["characters"]['Scene']
+    if 'scene' in parsed_data["characters"]:
+        del parsed_data["characters"]['scene']
 
     # Find the scene description
-    scene_pattern = r'\[Scene\]\((.*?)\)'
+    scene_pattern = r'\[scene\]\((.*?)\)'
     scene_match = re.search(scene_pattern, response)
     
     if scene_match:
@@ -96,16 +55,16 @@ def parse_segment(response):
     # Initialize the dictionary to hold fragments and prompts
     parsed_data = []
 
-    # Use regex to match the fragments and their corresponding prompts
-    pattern = r'\[([^\]]+)\]\[([^\]-]+)-([^\]]+)\]\(([^)]+)\)'
+    # Update the regex to account for possible spaces within the [YES-NO] segments
+    pattern = r'\[([^\]]+)\]\s*\[\s*([^\]-]+)\s*-\s*([^\]]+)\s*\]\s*\(([^)]+)\)'
     matches = re.findall(pattern, response)
 
     # Populate the parsed data
     for fragment, appearance_change, scene_change, prompt in matches:
         parsed_data.append({
             "fragment": fragment.strip(),
-            "appearance_change": True if appearance_change.strip() == 'YES' else False,
-            "scene_change": True if scene_change.strip() == 'YES' else False,
+            "appearance_change": True if appearance_change.strip().upper() == 'YES' else False,
+            "scene_change": True if scene_change.strip().upper() == 'YES' else False,
             "prompt": prompt.strip()
         })
 

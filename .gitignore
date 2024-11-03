@@ -1,3 +1,5 @@
 # Ignore temporary files
 __pycache__/
 images/*
+apikey.txt
+testapi.py
