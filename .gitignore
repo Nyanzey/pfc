@@ -3,3 +3,5 @@ __pycache__/
 images/*
 apikey.txt
 testapi.py
+myenv/
+audios/

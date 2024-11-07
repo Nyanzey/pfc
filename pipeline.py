@@ -1,10 +1,10 @@
 import infoExtractor as IE
 import sceneGenerator as SG
+import audioGenerator as AG
 from pathlib import Path
 import myapi
 import os
-
-
+import re
 
 # Step 1 and 2
 def get_info(input_path, regenerate_always=False):
@@ -51,7 +51,7 @@ print(len(DC))
 print(len(SEGMENTS))
 
 # Step 3 and 4
-
+"""
 image_prompts = []
 
 with open('./dynamicPrompts/prompts.txt', 'r') as file:
@@ -63,7 +63,18 @@ for i in range(len(SEGMENTS)):
     print(f'Generating: {prompt}')
     prompt = SG.generate_image(prompt, f'./images/{str(i).zfill(3)}.jpeg', 'jpeg', DC, SEGMENTS[i], i)
     image_prompts.append(prompt)
-
+"""
 # Step 5
 
+fragments = []
+pattern = r'[^a-zA-Z.,!?;:\' ]'
+for segment in SEGMENTS:
+    fragments.append(re.sub(pattern, '', segment['fragment']))
 
+audio_models = ['tts_models/en/ljspeech/neural_hmm', 'tts_models/en/ljspeech/overflow']
+
+print(fragments)
+
+print(AG.select_best_tts_model(fragments, audio_models))
+
+# Step 6
