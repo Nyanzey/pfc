@@ -47,7 +47,8 @@ def generate_image(prompt, save_path, img_format, DC, segment, id, threshold=0.5
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-    image_url = myapi.query_image_api(prompt, 'dall-e-3')
+    image_url = myapi.query_image_api(prompt, 'dall-e-2')
+    print(f'image: {image_url}') # just in case something bad happens
     save_image(image_url, save_path, img_format)
 
     image = Image.open(save_path)

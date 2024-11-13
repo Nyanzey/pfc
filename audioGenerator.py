@@ -31,6 +31,11 @@ def generate_audio(model_path, text, output_path):
     # Run TTS
     tts.tts_to_file(text=text, file_path=output_path)
 
+def transcribe_audio(audio_path):
+    result = pipeASR(audio_path)
+    transcribed_text = result["text"]
+    return transcribed_text
+
 # Function to evaluate audio quality using WER (or other metric)
 def evaluate_audio_quality(audio_path, reference_text):
     # Use Whisper to transcribe the audio
