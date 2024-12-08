@@ -1,4 +1,7 @@
 from openai import OpenAI
+import requests
+from PIL import Image
+from io import BytesIO
 
 def query_openai_api(model, user_prompt, system_prompt):
     with open('apikey.txt', 'r') as f:

@@ -2,7 +2,7 @@ Do the following tasks:
 
 - Segment the next narrative into fragments so that each fragment is used to represent a scene in the story, you should only create a new segment when is really necessary.
 - Generate a text to image prompt so that the resulting image represents each segment in the story.
-- Do not alter the original writting of the story for the fragments. 
+- Do not leave out any word from the original story.
 - Identify change of characters appearance (clothes, physical change) or scenes (location, time).
 - When generating the prompt use the name of the character instead of "A girl" or "A man".
 

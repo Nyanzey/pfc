@@ -10,7 +10,7 @@ Do the following tasks:
 - Identify changes in the appearance of the characters in the segment and update the description for those characters.
 - Identify changes in the scene in the segment and modify the scene description accordingly.
 - Focus mainly on physical aspects such as clothing.
-- If no changes are indentified keep the original descriptions.
+- If no changes are indentified answer based on the original descriptions in the specified response format.
 - Only include the characters and scene in which a modification was made.
 - If there is information about the same aspects in the description and segment, keep the new information in the segment.
 
