@@ -11,7 +11,7 @@ import re
 
 # Step 1 and 2
 def get_info(input_path, regenerate_always=False):
-    with open(input_path, 'r') as file:
+    with open(input_path, 'r', encoding='utf-8') as file:
         story = file.read()
     
     input_dict = {'narrative': story}
@@ -22,121 +22,120 @@ def get_info(input_path, regenerate_always=False):
 
     if os.path.exists(dictionary_path) and not regenerate_always:
         print('Using buffered DC')
-        raw_DC = Path(dictionary_path).read_text()
+        raw_DC = Path(dictionary_path).read_text(encoding='utf-8')
     else:
         print('Creating DC .....')
         createDC_prompt = IE.get_txt_prompt('createDC', input_dict)
         raw_DC = myapi.query_openai_api('gpt-4o', createDC_prompt, system_prompt)
 
-        with open(dictionary_path, 'w') as f:
+        with open(dictionary_path, 'w', encoding='utf-8') as f:
             f.write(raw_DC)
 
+    print(raw_DC)
     DC = IE.parse_DC(raw_DC)
 
     if os.path.exists(segments_path) and not regenerate_always:
         print('Using buffered segments')
-        raw_segments = Path(segments_path).read_text()
+        raw_segments = Path(segments_path).read_text(encoding='utf-8')
     else:
         print('Segmenting story .....')
         segments_prompt = IE.get_txt_prompt('segment', input_dict)
         raw_segments = myapi.query_openai_api('gpt-4o', segments_prompt, system_prompt)
         
-        with open(segments_path, 'w') as f:
+        with open(segments_path, 'w', encoding='utf-8') as f:
             f.write(raw_segments)
+
+    print(raw_segments)
     SEGMENTS = IE.parse_segment(raw_segments)
 
     return DC, SEGMENTS
 
 print('Entering step 1 and 2')
+
 # Steps 1 and 2
-DC, SEGMENTS = get_info("./input/hansel.txt", regenerate_always=True)
+DC, SEGMENTS = get_info("./input/test.txt", regenerate_always=False)
 
 print(len(DC))
 print(len(SEGMENTS))
 
 print('Finished step 1 and 2')
-sup = input('continue ? ')
-if sup == 'n':
-    exit()
 
 print('Entering step 3 and 4')
+
 # Step 3 and 4
-
 image_prompts = []
-
-"""
-with open('./dynamicPrompts/prompts.txt', 'r') as file:
-    image_prompts = [line.strip() for line in file.readlines()]
-"""
+buffer_prompts = []
 
 for i in range(len(SEGMENTS)):
+    save_path = f'./images/{str(i).zfill(3)}.jpeg'
+    if os.path.exists(save_path):
+        continue
+
+    if i == 0:
+        dummy_img = Image.open('./black.png')
+    else:
+        dummy_img = Image.open(f'./images/{str(i-1).zfill(3)}.jpeg')
+
     DC, prompt = SG.get_image_prompt(DC, SEGMENTS[i], i)
-    print(f'Generating: {prompt}')
-    prompt = SG.generate_image(prompt, f'./images/{str(i).zfill(3)}.jpeg', 'jpeg', DC, SEGMENTS[i], i)
-    image_prompts.append(prompt)
+    buffer_prompts.append(prompt)
+    print(f'Generating image {i}: {prompt}')
+
+    try:
+        prompt = SG.generate_image(prompt, save_path, 'jpeg', DC, SEGMENTS[i], i, threshold=0.6, max_generations=1)
+        image_prompts.append(prompt)
+    except Exception as e:
+        dummy_img.save(save_path, format='jpeg')
+        print(f"Error generating image for segment {i}: {e}")
+        continue
 
 with open('./dynamicPrompts/prompts.txt', 'w') as file:
     file.writelines(s + '\n' for s in image_prompts)
+
+with open('./dynamicPrompts/buffer_prompts.txt', 'w') as file:
+    file.writelines(s + '\n' for s in buffer_prompts)
 
 with open('./dynamicPrompts/updatedDict.txt', 'w') as file:
     file.write(IE.DC_to_string(DC))
 
 print('Finished step 3 and 4')
-sup = input('continue ? ')
-if sup == 'n':
-    exit()
 
 print('Entering step 5')
-# Step 5
 
+# Step 5
 fragments = []
-pattern = r'[^a-zA-Z.,!?;:\' ]'
+pattern = r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ.,!?;:\' ]' # Need to adjust when generating for different languages (english or spanish) before executing the pipeline
 for segment in SEGMENTS:
     fragments.append(re.sub(pattern, '', segment['fragment']))
 
+# for spanish: "tts_models/spa/fairseq/vits"
 audio_models = ['tts_models/en/ljspeech/neural_hmm', 'tts_models/en/ljspeech/overflow']
 
 print(fragments)
 
 best_tts = AG.select_best_tts_model(fragments, audio_models)
-#best_tts = 'tts_models/en/ljspeech/overflow'
+best_tts_name = best_tts.split('/')[-1]
+print(f'Best tts: {best_tts_name}')
 
 print('Finished step 5')
-sup = input('continue ? ')
-if sup == 'n':
-    exit()
 
 print('Entering step 6')
+
 # Step 6
-
-# delete after
-"""
-best_tts = 'tts_models/en/ljspeech/overflow'
-with open('./dynamicPrompts/segments.txt') as f:
-    raw = f.read()
-SEGMENTS = IE.parse_segment(raw)
-
-fragments = []
-pattern = r'[^a-zA-Z.,!?;:\' ]'
-for segment in SEGMENTS:
-    fragments.append(re.sub(pattern, '', segment['fragment']))
-"""
-# delete after
-
 images = []  
 audios = []  
-output_path = f'./output/' + input("Name for output video") + '.mp4'
+output_path = f'./output/' + input("Name for output video: ") + '.mp4'
 
 for i in range(len(SEGMENTS)):
     images.append(f'./images/{str(i).zfill(3)}.jpeg')
-    audios.append(f'./audios/overflow/audio_segment_{i}.wav')
+    audios.append(f'./audios/{best_tts_name}/audio_segment_{i}.wav')
 
 VA.create_narrative_video(images, audios, output_path)
 
 print('Finished step 6')
 
-# Evaluation
+print('Evaluating CM ...')
 
+# Evaluation
 val_images = []
 for i in range(len(SEGMENTS)):
     img_path = f'./images/{str(i).zfill(3)}.jpeg'

@@ -6,8 +6,10 @@ from io import BytesIO
 from transformers import CLIPProcessor, CLIPModel
 import myapi
 import json
+from transformers import BlipProcessor, BlipForConditionalGeneration
+from sentence_transformers import SentenceTransformer, util
+from torch.nn.functional import cosine_similarity
 
-# Step 3
 def get_image_prompt(DC, segment, id, update=True):
     if update:
         if segment['appearance_change'] or segment['scene_change']:
@@ -19,15 +21,13 @@ def get_image_prompt(DC, segment, id, update=True):
 
            update_prompt = IE.get_txt_prompt('updateDC', input_dict)
            updatedDC_raw = myapi.query_openai_api('gpt-4o', update_prompt, 'You are a story analyzer.')
-           print(updatedDC_raw)
-
-           #updatedDC_raw = Path("./dynamicPrompts/updatedDict.txt").read_text() # replace with response from query
 
            updatedDC = IE.parse_DC(updatedDC_raw)
            for name, description in updatedDC['characters'].items():
-               DC['characters'][name] = description
-           if 'scene' in updatedDC:
-               DC['scene'] = updatedDC['scene']
+                if len(description) > 5:
+                    DC['characters'][name] = description
+           if 'scene' in updatedDC and len(updatedDC['scene']) > 5:
+                DC['scene'] = updatedDC['scene']
     
     input_dict = {
         'descriptions': IE.DC_to_descriptions(DC),
@@ -43,30 +43,32 @@ def get_image_prompt(DC, segment, id, update=True):
     image_prompt = IE.parse_final_prompt(compose_raw)
     return DC, image_prompt
 
-def generate_image(prompt, save_path, img_format, DC, segment, id, threshold=0.5, max_generations=0):
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+def generate_image(prompt, save_path, img_format, DC, segment, id, threshold=0.7, max_generations=1):
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to("cuda")  
 
-    image_url = myapi.query_image_api(prompt, 'dall-e-2')
-    print(f'image: {image_url}') # just in case something bad happens
+    image_url = myapi.query_image_api(prompt, 'dall-e-3')
+    print(f'Image url: {image_url}')
+
     save_image(image_url, save_path, img_format)
-
     image = Image.open(save_path)
+
     print(f'validating {save_path} .....')
+    
     sim = get_similarity(image, prompt, model, processor)
-    print(sim)
+    print(f'Similarity: {sim}')
     generations = 0
     while sim < threshold and generations < max_generations:
-        print("regenerating ...")
+        print("Regenerating ...")
         dc, prompt = get_image_prompt(DC, segment, id, update=False)
 
-        #image_url = myapi.query_image_api(prompt, 'dall-e-2')
+        image_url = myapi.query_image_api(prompt, 'dall-e-3')
         save_image(image_url, save_path, img_format)
 
         image = Image.open(save_path)
         
         sim = get_similarity(image, prompt, model, processor)
-        print(sim)
+        print(f'Similarity: {sim}')
         generations += 1
     return prompt
 
@@ -76,16 +78,16 @@ def save_image(image_url, save_path, img_format):
     image.save(save_path, format=img_format)
 
 def get_similarity(image, prompt, model, processor):
-    inputs = processor(text=[prompt], images=image, return_tensors="pt", padding=True)
+    stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
 
-    outputs = model(**inputs)
-    image_embeddings = outputs.image_embeds
-    text_embeddings = outputs.text_embeds
+    inputs = processor(image, return_tensors="pt").to("cuda")
 
-    # Normalize the embeddings
-    image_embeddings = image_embeddings / image_embeddings.norm(dim=-1, keepdim=True)
-    text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+    out = model.generate(**inputs)
+    predicted = processor.decode(out[0], skip_special_tokens=True)
 
-    # Calculate cosine similarity
-    similarity = (image_embeddings @ text_embeddings.T).squeeze().item()
-    return similarity
+    embedding1 = stc_model.encode(prompt, convert_to_tensor=True)
+    embedding2 = stc_model.encode(predicted, convert_to_tensor=True)
+
+    cos_sim = cosine_similarity(embedding1, embedding2, dim=-1)
+
+    return cos_sim.item()

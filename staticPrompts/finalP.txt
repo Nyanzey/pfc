@@ -2,7 +2,7 @@ Given the description of the appearance of the following characters:
 
 ![descriptions]
 
-And a story segment and initial prompt for a text to image model to generate a image depicting the segment:
+And a story segment and initial prompt for a text to image model to generate an image depicting the segment:
 
 Segment: 
 
@@ -12,6 +12,6 @@ Initial prompt:
 
 ![initial]
 
-Improve the initial prompt modifying or adding information about the appearance of the characters in the story and characteristics of the scene. The resulting prompt should contain all the information a text to image model would need to generate an image that depicts whats happening in the segment. Do not exceed 300 characters description length. Reply with the improved prompt in the following format:
+Improve the initial prompt modifying or adding information about the appearance of the characters in the story and characteristics of the scene. The resulting prompt should contain all the information a text to image model would need to generate an image that depicts whats happening in the segment. Make sure the prompt does not violate the content policy and filters of dall-e-3. Reply with the improved prompt in the following format:
 
 final prompt: "<final prompt>"

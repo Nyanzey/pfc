@@ -9,24 +9,20 @@ from pathlib import Path
 import infoExtractor as IE
 import sceneGenerator as SG
 from transformers import CLIPProcessor, CLIPModel
+from transformers import BlipProcessor, BlipForConditionalGeneration
 
-# Configuración de pesos
-alpha, beta, gamma = 0.4, 0.3, 0.3  # Ajustables según experimentos
+alpha, beta, gamma = 0.4, 0.3, 0.3
 
-# Modelos
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-sentence_model = SentenceTransformer('all-MiniLM-L6-v2')  # Modelo transformer para VAC
-brisque = BRISQUE()  # Métrica IQS
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to("cuda")  
+sentence_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')  # Modelo transformer para VAC
+brisque = BRISQUE()
 
-# Función para calcular VAC
 def calculate_vac(story_segments, prompts, images, audios):
-    # Cálculo de Cpi (similitud entre prompt e imagen)
     Cpi = []
     for prompt, image in zip(prompts, images):
-        Cpi.append(SG.get_similarity(image, prompt, clip_model, clip_processor))
+        Cpi.append(SG.get_similarity(image, prompt, model, processor))
 
-    # Cálculo de Csa (similitud entre segmento de texto y audio)
     Csa = []
     total_length = sum(len(seg) for seg in story_segments)
     for seg, audio_text in zip(story_segments, audios):
@@ -36,31 +32,27 @@ def calculate_vac(story_segments, prompts, images, audios):
         weight = len(seg) / total_length
         Csa.append(weight * similarity)
 
+    print('Image coherence scores')
     print(Cpi)
+    print('Audio coherence scores')
     print(Csa)
 
-    # Cálculo de VAC
     VAC = ((sum(Cpi) / (len(prompts)) + sum(Csa)) / 2)
     return VAC
 
-# Función para calcular IQS
 def calculate_iqs(images):
     scores = []
     for image in images:
         scores.append(brisque.get_score(np.asarray(image)))
-    print(scores)
     IQS = 1 - (sum(scores) / (len(scores) * 100))
     return IQS
 
-# Función para calcular AQS
 def calculate_aqs(story_segments, audios):
     scores = [wer(seg, audio) for seg, audio in zip(story_segments, audios)]
     AQS = 1 - (sum(scores) / len(scores))
     return AQS
 
-# Función para calcular la métrica compuesta CM
 def calculate_cm(story_segments, prompts, images, audios):
-    # Calcular cada métrica
     print('Calculating VAC ...')
     VAC = calculate_vac(story_segments, prompts, images, audios)
     print('Calculating IQS ...')
@@ -71,8 +63,5 @@ def calculate_cm(story_segments, prompts, images, audios):
     print(f'IQS:{IQS}')
     print(f'AQS:{AQS}')
 
-    # Métrica compuesta
     CM = alpha * VAC + beta * IQS + gamma * AQS
     return CM
-
-
