@@ -1,0 +1,13 @@
+torch
+numpy
+TTS
+jiwer
+transformers
+clip-by-openai
+sentence-transformers
+brisque
+Pillow
+pathlib
+openai
+requests
+moviepy

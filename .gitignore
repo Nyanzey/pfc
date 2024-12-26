@@ -1,7 +1,7 @@
 # Ignore temporary files
 __pycache__/
 images/*
-apikey.txt
+openai_apikey.txt
 testapi.py
 myenv/
 audios/

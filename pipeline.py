@@ -5,55 +5,18 @@ import videoAssembler as VA
 import evaluate as eval
 from pathlib import Path
 from PIL import Image
-import myapi
+import json
 import os
 import re
 
 # Step 1 and 2
-def get_info(input_path, regenerate_always=False):
-    with open(input_path, 'r', encoding='utf-8') as file:
-        story = file.read()
-    
-    input_dict = {'narrative': story}
-    system_prompt = "You are a story analyzer."
-
-    dictionary_path = './dynamicPrompts/dictionary.txt'
-    segments_path = './dynamicPrompts/segments.txt'
-
-    if os.path.exists(dictionary_path) and not regenerate_always:
-        print('Using buffered DC')
-        raw_DC = Path(dictionary_path).read_text(encoding='utf-8')
-    else:
-        print('Creating DC .....')
-        createDC_prompt = IE.get_txt_prompt('createDC', input_dict)
-        raw_DC = myapi.query_openai_api('gpt-4o', createDC_prompt, system_prompt)
-
-        with open(dictionary_path, 'w', encoding='utf-8') as f:
-            f.write(raw_DC)
-
-    print(raw_DC)
-    DC = IE.parse_DC(raw_DC)
-
-    if os.path.exists(segments_path) and not regenerate_always:
-        print('Using buffered segments')
-        raw_segments = Path(segments_path).read_text(encoding='utf-8')
-    else:
-        print('Segmenting story .....')
-        segments_prompt = IE.get_txt_prompt('segment', input_dict)
-        raw_segments = myapi.query_openai_api('gpt-4o', segments_prompt, system_prompt)
-        
-        with open(segments_path, 'w', encoding='utf-8') as f:
-            f.write(raw_segments)
-
-    print(raw_segments)
-    SEGMENTS = IE.parse_segment(raw_segments)
-
-    return DC, SEGMENTS
-
 print('Entering step 1 and 2')
 
-# Steps 1 and 2
-DC, SEGMENTS = get_info("./input/test.txt", regenerate_always=False)
+with open('config.json', 'r') as file:
+    config = json.load(file)
+
+DC = IE.get_characteristics("./input/test.txt", config['Text-to-Text'], regenerate_always=False)
+SEGMENTS = IE.segment_story("./input/test.txt", config['Text-to-Text'], regenerate_always=False)
 
 print(len(DC))
 print(len(SEGMENTS))

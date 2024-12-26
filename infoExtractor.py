@@ -1,9 +1,6 @@
-import torch
-import io
-import sys
-import numpy as np
-import openai
 import re
+import os
+import myapi
 from pathlib import Path
     
 def get_txt_prompt(type, input):
@@ -99,4 +96,53 @@ def DC_to_descriptions(DC):
         result.append(f'scene:"{description}"')
 
     return "\n".join(result)
-    
+
+def get_characteristics(input_path, model_info, regenerate_always=False):
+    with open(input_path, 'r', encoding='utf-8') as file:
+        story = file.read()
+
+    input_dict = {'narrative': story}
+    system_prompt = "You are a story analyzer."
+    dictionary_path = './dynamicPrompts/dictionary.txt'
+
+    if os.path.exists(dictionary_path) and not regenerate_always:
+        print('Using buffered DC')
+        raw_DC = Path(dictionary_path).read_text(encoding='utf-8')
+    else:
+        print('Creating DC .....')
+        createDC_prompt = get_txt_prompt('createDC', input_dict)
+        
+        raw_DC = myapi.text_query(model_info, createDC_prompt, system_prompt)
+
+        with open(dictionary_path, 'w', encoding='utf-8') as f:
+            f.write(raw_DC)
+
+    print(raw_DC)
+    return parse_DC(raw_DC)
+
+def segment_story(input_path, model_info, regenerate_always=False):
+    with open(input_path, 'r', encoding='utf-8') as file:
+        story = file.read()
+
+    input_dict = {'narrative': story}
+    system_prompt = "You are a story analyzer."
+    segments_path = './dynamicPrompts/segments.txt'
+
+    if os.path.exists(segments_path) and not regenerate_always:
+        print('Using buffered segments')
+        raw_segments = Path(segments_path).read_text(encoding='utf-8')
+    else:
+        print('Segmenting story .....')
+        segments_prompt = get_txt_prompt('segment', input_dict)
+
+        raw_segments = myapi.text_query(model_info, segments_prompt, system_prompt)
+        
+        with open(segments_path, 'w', encoding='utf-8') as f:
+            f.write(raw_segments)
+
+    print(raw_segments)
+    return parse_segment(raw_segments)
+
+def custom_segment_story(input_path, regenerate_always=False):
+    # to be implemented
+    pass

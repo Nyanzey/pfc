@@ -1,0 +1,13 @@
+{
+    "Text-to-Text": {
+        "source": "openai",
+        "model": "gpt-4o",
+        "requires_key": true 
+    },
+    "Text-to-Image": {
+        "source": "openai",
+        "model": "dall-e-2",
+        "requires_key": true 
+    },
+    "Language": "en"
+}

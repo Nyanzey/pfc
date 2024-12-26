@@ -1,7 +1,4 @@
 from openai import OpenAI
-import requests
-from PIL import Image
-from io import BytesIO
 
 def query_openai_api(model, user_prompt, system_prompt):
     with open('apikey.txt', 'r') as f:
@@ -32,7 +29,7 @@ def query_openai_api(model, user_prompt, system_prompt):
     ])
     return completion.choices[0].message.content
 
-def query_image_api(prompt, model):
+def query_image_openai_api(prompt, model):
     with open('apikey.txt', 'r') as f:
         key = f.read()
     client = OpenAI(api_key=key)
@@ -45,3 +42,18 @@ def query_image_api(prompt, model):
         response_format="url"
     )
     return response.data[0].url
+
+def query_llama(prompt, model):
+    # to be implemented
+    pass
+
+def query_image_sd(prompt, model):
+    # to be implemented
+    pass
+
+def text_query(model_info, user_prompt, system_prompt):
+    if model_info['source'] == 'openai':
+        return query_openai_api(model_info['model'], user_prompt, system_prompt)
+    elif model_info['source'] == 'meta':
+        return query_llama(user_prompt, system_prompt)
+    return None
