@@ -1,9 +1,8 @@
 torch
 numpy
-TTS
+coqui-tts
 jiwer
 transformers
-clip-by-openai
 sentence-transformers
 brisque
 Pillow

@@ -1,13 +1,11 @@
 import infoExtractor as IE
-from pathlib import Path
 import requests
 from PIL import Image
 from io import BytesIO
-from transformers import CLIPProcessor, CLIPModel
 import myapi
 import json
 from transformers import BlipProcessor, BlipForConditionalGeneration
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 from torch.nn.functional import cosine_similarity
 
 def get_image_prompt(DC, segment, id, update=True):

@@ -1,5 +1,4 @@
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
-import os
 
 def create_narrative_video(images, audios, output_path):
     video_clips = []

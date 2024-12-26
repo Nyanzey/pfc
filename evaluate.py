@@ -1,14 +1,8 @@
-import torch
-import clip
 from sentence_transformers import SentenceTransformer, util
 from brisque import BRISQUE
 from jiwer import wer
 import numpy as np
-from PIL import Image
-from pathlib import Path
-import infoExtractor as IE
 import sceneGenerator as SG
-from transformers import CLIPProcessor, CLIPModel
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
 alpha, beta, gamma = 0.4, 0.3, 0.3

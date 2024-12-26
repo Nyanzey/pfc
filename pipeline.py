@@ -3,7 +3,6 @@ import sceneGenerator as SG
 import audioGenerator as AG
 import videoAssembler as VA
 import evaluate as eval
-from pathlib import Path
 from PIL import Image
 import json
 import os
@@ -105,7 +104,7 @@ for i in range(len(SEGMENTS)):
     val_images.append(Image.open(img_path))
 
 val_transcriptions = []
-audios_dir = f'./audios/{best_tts.split('/')[-1]}/'
+audios_dir = f"./audios/{best_tts.split('/')[-1]}/"
 for i in range(len(SEGMENTS)):
     audio_path = audios_dir + f'audio_segment_{i}.wav'
     val_transcriptions.append(AG.transcribe_audio(audio_path))
