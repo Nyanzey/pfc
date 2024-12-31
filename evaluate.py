@@ -4,11 +4,14 @@ from jiwer import wer
 import numpy as np
 import sceneGenerator as SG
 from transformers import BlipProcessor, BlipForConditionalGeneration
+import torch
 
 alpha, beta, gamma = 0.4, 0.3, 0.3
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to("cuda")  
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to(device)  
 sentence_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')  # Modelo transformer para VAC
 brisque = BRISQUE()
 

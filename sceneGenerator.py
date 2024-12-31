@@ -7,6 +7,9 @@ import json
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from sentence_transformers import SentenceTransformer
 from torch.nn.functional import cosine_similarity
+import torch
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def get_image_prompt(DC, segment, id, update=True):
     if update:
@@ -43,7 +46,7 @@ def get_image_prompt(DC, segment, id, update=True):
 
 def generate_image(prompt, save_path, img_format, DC, segment, id, threshold=0.7, max_generations=1):
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to("cuda")  
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to(device)  
 
     image_url = myapi.query_image_api(prompt, 'dall-e-3')
     print(f'Image url: {image_url}')
@@ -78,7 +81,7 @@ def save_image(image_url, save_path, img_format):
 def get_similarity(image, prompt, model, processor):
     stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
 
-    inputs = processor(image, return_tensors="pt").to("cuda")
+    inputs = processor(image, return_tensors="pt").to(device)
 
     out = model.generate(**inputs)
     predicted = processor.decode(out[0], skip_special_tokens=True)
