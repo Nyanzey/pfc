@@ -1,13 +1,14 @@
 {
     "Text-to-Text": {
-        "source": "openai",
-        "model": "gpt-4o",
-        "requires_key": true 
+        "source": "meta",
+        "model": "meta-llama/Llama-3.2-3B-Instruct",
+        "requires_key": false
     },
     "Text-to-Image": {
         "source": "openai",
         "model": "dall-e-2",
         "requires_key": true 
     },
-    "Language": "en"
+    "Language": "en",
+    "Context_length": 2000
 }

@@ -14,8 +14,8 @@ print('Entering step 1 and 2')
 with open('config.json', 'r') as file:
     config = json.load(file)
 
-DC = IE.get_characteristics("./input/test.txt", config['Text-to-Text'], regenerate_always=False)
-SEGMENTS = IE.segment_story("./input/test.txt", config['Text-to-Text'], regenerate_always=False)
+DC = IE.get_characteristics("./input/test.txt", regenerate_always=False)
+SEGMENTS = IE.segment_story("./input/test.txt", regenerate_always=False)
 
 print(len(DC))
 print(len(SEGMENTS))

@@ -1,25 +1,54 @@
-Do the following tasks:
+# Tasks:
 
-- Segment the next narrative into fragments so that each fragment is used to represent a scene in the story, you should only create a new segment when is really necessary.
-- Generate a text to image prompt so that the resulting image represents each segment in the story.
-- Do not leave out any word from the original story.
-- Identify change of characters appearance (clothes, physical change) or scenes (location, time).
-- When generating the prompt use the name of the character instead of "A girl" or "A man".
+- Segment the Narrative:
 
-The output should have the following format:
+Partition the narrative into fragments, ensuring each fragment represents a distinct scene or meaningful unit of the story. Only create a new fragment when there is a significant change in the scene (location, time) or characters (appearance, actions).
 
-[<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)
+- Text-to-Image Prompt Generation:
 
-Example:
+Create a detailed text-to-image prompt for each fragment. Use specific character names and vivid details to capture the essence of the scene.
 
-Prompt: 
+- Detect Changes:
 
+Identify whether a change occurs in:
+
+Scene: A shift in location, time, or atmosphere.
+Appearance: A noticeable change in the physical appearance or clothing of a character.
+
+- Update Context:
+
+Continuously update and provide the current context of the story based on events described in the fragments.
+
+# Considerations:
+
+- Current Context: The narrative context provided should guide the interpretation of the story. Use it to maintain continuity.
+
+- Original Content: Do not modify the original story content in the fragments.
+
+- Specificity: Avoid generic references like "a man" or "a woman"; use the provided character names.
+
+# Output format
+
+[<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[Context](<updated context>)
+
+# Example:
+
+- Prompt:
+
+Context:
+It is a sunny day in California; a dog has decided to go for a walk.
+
+Story:
 The dog was walking by the river, when suddenly a bird fell from the bridge.
 
-Response:
+- Response:
 
-[The dog was walking by the river,][NO-NO](A dog walking by a river)[when suddenly a bird fell from the bridge.][NO-YES](A dog seeing a bird falling of a bridge)
+[The dog was walking by the river,][NO-NO](A dog walking along a peaceful river on a sunny afternoon in California)[when suddenly a bird fell from the bridge.][NO-YES](A startled dog witnessing a bird falling from a bridge into the river below)[Context](The dog is by the river, and a bird has just fallen from the bridge into the river.)
 
-Prompt:
+# Prompt:
 
+Context:
+![context]
+
+Story:
 ![narrative]
