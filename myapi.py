@@ -19,8 +19,8 @@ if config['Text-to-Text']['source'] == 'meta':
 if config['Text-to-Text']['requires_key']:
     api_text_key = input(f"An API key is required for {config['Text-to-Text']['model']} by {config['Text-to-Text']['source']}: ")
 
-if config['Image-to-Text']['requires_key']:
-    api_image_key = input(f"An API key is required for {config['Image-to-Text']['model']} by {config['Image-to-Text']['source']}: ")
+if config['Text-to-Image']['requires_key']:
+    api_image_key = input(f"An API key is required for {config['Text-to-Image']['model']} by {config['Text-to-Image']['source']}: ")
 
 def query_openai_api(model, user_prompt, system_prompt):
     client = OpenAI(api_key=api_text_key)
