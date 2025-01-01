@@ -102,7 +102,7 @@ def DC_to_descriptions(DC):
 
     return "\n".join(result)
 
-def get_characteristics(input_path, model_info, regenerate_always=False):
+def get_characteristics(input_path, regenerate_always=False):
     with open(input_path, 'r', encoding='utf-8') as file:
         story = file.read()
 
@@ -117,7 +117,7 @@ def get_characteristics(input_path, model_info, regenerate_always=False):
         print('Creating DC .....')
         createDC_prompt = get_txt_prompt('createDC', input_dict)
         
-        raw_DC = myapi.text_query(model_info, createDC_prompt, system_prompt)
+        raw_DC = myapi.text_query(createDC_prompt, system_prompt)
 
         with open(dictionary_path, 'w', encoding='utf-8') as f:
             f.write(raw_DC)
@@ -143,7 +143,7 @@ def append_segments(src, dest):
     return context
 
 def segment_story(input_path, regenerate_always=False):
-    
+
     segments_path = './dynamicPrompts/segments.txt'
     if os.path.exists(segments_path) and not regenerate_always:
             print('Using buffered segments')

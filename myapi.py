@@ -79,8 +79,8 @@ def query_image_sd(prompt, model):
     pass
 
 def text_query(user_prompt, system_prompt):
-    if config['source'] == 'openai':
+    if config['Text-to-Text']['source'] == 'openai':
         return query_openai_api(config['model'], user_prompt, system_prompt)
-    elif config['source'] == 'meta':
+    elif config['Text-to-Text']['source'] == 'meta':
         return query_llama(user_prompt, system_prompt)
     return None
