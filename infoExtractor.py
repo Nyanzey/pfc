@@ -140,10 +140,9 @@ def append_segments(src, dest):
         context = match.group(1).strip()
     else:
         context = None
-    return context
+    return dest, context
 
 def segment_story(input_path, regenerate_always=False):
-
     segments_path = './dynamicPrompts/segments.txt'
     if os.path.exists(segments_path) and not regenerate_always:
             print('Using buffered segments')
@@ -153,18 +152,26 @@ def segment_story(input_path, regenerate_always=False):
         with open(input_path, 'r', encoding='utf-8') as file:
             story = file.read()
 
-        context_length = config["Context-Length"]
+        total_length = len(story)
+        context_length = config["Context_Length"]
 
         lines = story.split('\n')
         parts = []
+        current = []
+        total = 0
         for line in lines:
-            current = []
-            total = 0
-            while len(current) < 1 or total + len(line) < context_length:
-                current.append(line)
-                total += len(line)
+            print('line:', line)
+            current.append(line)
+            total += len(line)
+            print('total:', total)
+            if total >= (context_length/100)*total_length:
+                parts.append('\n'.join(current))
+                current = []
+                total = 0
+        if current:
             parts.append('\n'.join(current))
-
+        print(f'split into {len(parts)} parts')
+                
         context = "This is the beginning of the story so there is no context to provide yet."
         all_segments = None
         for part in parts:
@@ -174,7 +181,8 @@ def segment_story(input_path, regenerate_always=False):
             segments_prompt = get_txt_prompt('segment', input_dict)
 
             raw_segments = myapi.text_query(segments_prompt, system_prompt)
-            context = append_segments(raw_segments, all_segments)
+            print(raw_segments)
+            all_segments, context = append_segments(raw_segments, all_segments)
 
     with open(segments_path, 'w', encoding='utf-8') as f:
         f.write(all_segments)

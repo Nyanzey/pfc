@@ -1,3 +1,5 @@
+import os
+os.environ['HF_HOME'] = 'F:\\modelscache'
 import infoExtractor as IE
 import sceneGenerator as SG
 import audioGenerator as AG
