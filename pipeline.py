@@ -1,65 +1,60 @@
 import os
 os.environ['HF_HOME'] = 'F:\\modelscache'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+# Pipeline components
 import infoExtractor as IE
 import sceneGenerator as SG
 import audioGenerator as AG
 import videoAssembler as VA
 import evaluate as eval
+from myapi import ModelManager
+
+# Utilities
 from PIL import Image
 import json
 import os
 import re
 
+# For image captioning and similarity
+from transformers import BlipProcessor, BlipForConditionalGeneration
+
+# Sentence transformer
+from sentence_transformers import SentenceTransformer
+
 # Step 1 and 2
 print('Entering step 1 and 2')
 
-with open('config.json', 'r') as file:
-    config = json.load(file)
+input_path = "./input/test.txt"
+config_path = "./config.json"
+save_path = "./dynamicPrompts"
+output_audio_path = "./audios"
 
-DC = IE.get_characteristics("./input/test.txt", regenerate_always=False)
-SEGMENTS = IE.segment_story("./input/test.txt", regenerate_always=False)
+model_manager = ModelManager(config_path)
 
-print(len(DC))
-print(len(SEGMENTS))
+info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager)
+info_extractor.get_characteristics(regenerate_always=False)
+info_extractor.segment_story(regenerate_always=False)
+info_extractor.save_all()
+
+print(len(info_extractor.DC))
+print(len(info_extractor.segments))
 
 print('Finished step 1 and 2')
 
 print('Entering step 3 and 4')
 
 # Step 3 and 4
-image_prompts = []
-buffer_prompts = []
 
-for i in range(len(SEGMENTS)):
-    save_path = f'./images/{str(i).zfill(3)}.jpeg'
-    if os.path.exists(save_path):
-        continue
+img_captioning_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+img_captioning_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
 
-    if i == 0:
-        dummy_img = Image.open('./black.png')
-    else:
-        dummy_img = Image.open(f'./images/{str(i-1).zfill(3)}.jpeg')
+scene_generator = SG.SceneGenerator(config_path, save_path, info_extractor, img_captioning_model, img_captioning_processor, stc_model, model_manager)
 
-    DC, prompt = SG.get_image_prompt(DC, SEGMENTS[i], i)
-    buffer_prompts.append(prompt)
-    print(f'Generating image {i}: {prompt}')
-
-    try:
-        prompt = SG.generate_image(prompt, save_path, 'jpeg', DC, SEGMENTS[i], i, threshold=0.6, max_generations=1)
-        image_prompts.append(prompt)
-    except Exception as e:
-        dummy_img.save(save_path, format='jpeg')
-        print(f"Error generating image for segment {i}: {e}")
-        continue
-
-with open('./dynamicPrompts/prompts.txt', 'w') as file:
-    file.writelines(s + '\n' for s in image_prompts)
-
-with open('./dynamicPrompts/buffer_prompts.txt', 'w') as file:
-    file.writelines(s + '\n' for s in buffer_prompts)
-
-with open('./dynamicPrompts/updatedDict.txt', 'w') as file:
-    file.write(IE.DC_to_string(DC))
+scene_generator.generate_scenes()
+scene_generator.save_prompts()
+scene_generator.info_extractor.save_all()
 
 print('Finished step 3 and 4')
 
@@ -68,15 +63,17 @@ print('Entering step 5')
 # Step 5
 fragments = []
 pattern = r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ.,!?;:\' ]' # Need to adjust when generating for different languages (english or spanish) before executing the pipeline
-for segment in SEGMENTS:
+for segment in scene_generator.info_extractor.segments:
     fragments.append(re.sub(pattern, '', segment['fragment']))
 
 # for spanish: "tts_models/spa/fairseq/vits"
 audio_models = ['tts_models/en/ljspeech/neural_hmm', 'tts_models/en/ljspeech/overflow']
 
+audio_generator = AG.AudioGenerator(audio_models, output_audio_path)
+
 print(fragments)
 
-best_tts = AG.select_best_tts_model(fragments, audio_models)
+best_tts = audio_generator.select_best_tts_model(fragments)
 best_tts_name = best_tts.split('/')[-1]
 print(f'Best tts: {best_tts_name}')
 
@@ -89,7 +86,7 @@ images = []
 audios = []  
 output_path = f'./output/' + input("Name for output video: ") + '.mp4'
 
-for i in range(len(SEGMENTS)):
+for i in range(len(info_extractor.segments)):
     images.append(f'./images/{str(i).zfill(3)}.jpeg')
     audios.append(f'./audios/{best_tts_name}/audio_segment_{i}.wav')
 
@@ -101,15 +98,15 @@ print('Evaluating CM ...')
 
 # Evaluation
 val_images = []
-for i in range(len(SEGMENTS)):
+for i in range(len(info_extractor.segments)):
     img_path = f'./images/{str(i).zfill(3)}.jpeg'
     val_images.append(Image.open(img_path))
 
 val_transcriptions = []
 audios_dir = f"./audios/{best_tts.split('/')[-1]}/"
-for i in range(len(SEGMENTS)):
+for i in range(len(info_extractor.segments)):
     audio_path = audios_dir + f'audio_segment_{i}.wav'
     val_transcriptions.append(AG.transcribe_audio(audio_path))
 
-score = eval.calculate_cm(fragments, image_prompts, val_images, val_transcriptions)
+score = eval.calculate_cm(fragments, scene_generator.prompts['buffer'], val_images, val_transcriptions)
 print(f'Final metric score: {score}')

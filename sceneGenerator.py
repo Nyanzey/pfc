@@ -4,91 +4,136 @@ from PIL import Image
 from io import BytesIO
 import myapi
 import json
-from transformers import BlipProcessor, BlipForConditionalGeneration
-from sentence_transformers import SentenceTransformer
+import os
 from torch.nn.functional import cosine_similarity
 import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+class SceneGenerator:
+    def __init__(self, config_path=None, save_path=None, info_extractor:IE.InfoExtractor=None, image_captioning_model=None, image_captioning_processor=None, sentence_model=None, model_manager:myapi.ModelManager=None):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.info_extractor = info_extractor
+        self.image_captioning_model = image_captioning_model.to(self.device)
+        self.image_captioning_processor = image_captioning_processor
+        self.sentence_model = sentence_model
+        self.prompts = {}
+        self.save_path = save_path
+        self.model_manager = model_manager
 
-def get_image_prompt(DC, segment, id, update=True):
-    if update:
-        if segment['appearance_change'] or segment['scene_change']:
-           print('Updating ....')
-           input_dict = {
-               'descriptions': IE.DC_to_descriptions(DC),
-               'segment': segment['fragment']
-           }
+        if config_path:
+            with open(config_path, 'r') as file:
+                self.config = json.load(file)
 
-           update_prompt = IE.get_txt_prompt('updateDC', input_dict)
-           updatedDC_raw = myapi.query_openai_api('gpt-4o', update_prompt, 'You are a story analyzer.')
+    def get_image_prompt(self, segment, id, update_dc=True):
+        if update_dc:
+            if segment['appearance_change'] or segment['scene_change']:
+                print('Updating ....')
+                input_dict = {
+                'descriptions': self.info_extractor.format_info(self.info_extractor.DC),
+                'segment': segment['fragment']
+                }
 
-           updatedDC = IE.parse_DC(updatedDC_raw)
-           for name, description in updatedDC['characters'].items():
-                if len(description) > 5:
-                    DC['characters'][name] = description
-           if 'scene' in updatedDC and len(updatedDC['scene']) > 5:
-                DC['scene'] = updatedDC['scene']
-    
-    input_dict = {
-        'descriptions': IE.DC_to_descriptions(DC),
-        'segment': segment['fragment'],
-        'initial': segment['prompt']
-    }
+                update_prompt = self.info_extractor.format_prompt('updateDC', input_dict)
+                updatedDC_raw = self.model_manager.text_query(update_prompt, 'You are a story analyzer.')
 
-    with open(f'./dynamicPrompts/img_{id}_gen.json', 'w') as json_file:
-        json.dump(input_dict, json_file, indent=4)
-
-    compose_prompt = IE.get_txt_prompt('finalP', input_dict)
-    compose_raw = myapi.query_openai_api('gpt-4o', compose_prompt, 'You are a story analyzer.')
-    image_prompt = IE.parse_final_prompt(compose_raw)
-    return DC, image_prompt
-
-def generate_image(prompt, save_path, img_format, DC, segment, id, threshold=0.7, max_generations=1):
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large").to(device)  
-
-    image_url = myapi.query_image_api(prompt, 'dall-e-3')
-    print(f'Image url: {image_url}')
-
-    save_image(image_url, save_path, img_format)
-    image = Image.open(save_path)
-
-    print(f'validating {save_path} .....')
-    
-    sim = get_similarity(image, prompt, model, processor)
-    print(f'Similarity: {sim}')
-    generations = 0
-    while sim < threshold and generations < max_generations:
-        print("Regenerating ...")
-        dc, prompt = get_image_prompt(DC, segment, id, update=False)
-
-        image_url = myapi.query_image_api(prompt, 'dall-e-3')
-        save_image(image_url, save_path, img_format)
-
-        image = Image.open(save_path)
+                updatedDC = self.info_extractor.parse_info(updatedDC_raw)
+                for name, description in updatedDC['characters'].items():
+                    if len(description) > 5:
+                        self.info_extractor.DC['characters'][name] = description
+                if 'scene' in updatedDC and len(updatedDC['scene']) > 5:
+                    self.info_extractor.DC['scene'] = updatedDC['scene']
         
-        sim = get_similarity(image, prompt, model, processor)
+        input_dict = {
+            'descriptions': self.info_extractor.format_info(),
+            'segment': segment['fragment'],
+            'initial': segment['prompt']
+        }
+
+        with open(f'./dynamicPrompts/img_{id}_gen.json', 'w') as json_file:
+            json.dump(input_dict, json_file, indent=4)
+
+        compose_prompt = self.info_extractor.format_prompt('finalP', input_dict)
+        compose_raw = self.model_manager.text_query(compose_prompt, 'You are a story analyzer.')
+        image_prompt = self.info_extractor.parse_final_prompt(compose_raw)
+        return image_prompt
+
+    def generate_image(self, prompt, save_path, img_format, segment, id, threshold=0.7, max_generations=1):
+        image_url = self.model_manager.image_query(prompt)
+        print(f'Image url: {image_url}')
+
+        self.save_image(image_url, save_path, img_format)
+        image = Image.open(save_path)
+
+        print(f'validating {save_path} .....')
+        
+        sim = self.get_similarity(image, prompt, self.image_captioning_model, self.image_captioning_processor)
         print(f'Similarity: {sim}')
-        generations += 1
-    return prompt
 
-def save_image(image_url, save_path, img_format):
-    image_data = requests.get(image_url).content
-    image = Image.open(BytesIO(image_data))
-    image.save(save_path, format=img_format)
+        generations = 0
+        while sim < threshold and generations < max_generations:
+            print("Regenerating ...")
+            prompt = self.get_image_prompt(segment, id, update_dc=False)
 
-def get_similarity(image, prompt, model, processor):
-    stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
+            image_url = self.model_manager.image_query(prompt)
+            self.save_image(image_url, save_path, img_format)
 
-    inputs = processor(image, return_tensors="pt").to(device)
+            image = Image.open(save_path)
+            
+            sim = self.get_similarity(image, prompt, self.image_captioning_model, self.image_captioning_processor)
+            print(f'Similarity: {sim}')
+            generations += 1
+        return prompt
 
-    out = model.generate(**inputs)
-    predicted = processor.decode(out[0], skip_special_tokens=True)
+    def save_image(self, image_url, save_path, img_format):
+        image_data = requests.get(image_url).content
+        image = Image.open(BytesIO(image_data))
+        image.save(save_path, format=img_format)
 
-    embedding1 = stc_model.encode(prompt, convert_to_tensor=True)
-    embedding2 = stc_model.encode(predicted, convert_to_tensor=True)
+    def get_similarity(self, image, prompt, model, processor):
 
-    cos_sim = cosine_similarity(embedding1, embedding2, dim=-1)
+        inputs = processor(image, return_tensors="pt").to(self.device)
 
-    return cos_sim.item()
+        out = model.generate(**inputs)
+        predicted = processor.decode(out[0], skip_special_tokens=True)
+
+        embedding1 = self.sentence_model.encode(prompt, convert_to_tensor=True)
+        embedding2 = self.sentence_model.encode(predicted, convert_to_tensor=True)
+
+        cos_sim = cosine_similarity(embedding1, embedding2, dim=-1)
+
+        return cos_sim.item()
+    
+    def generate_scenes(self, update_dc=True, img_format='png'):
+        image_prompts = []
+        buffer_prompts = []
+
+        for i in range(len(self.info_extractor.segments)):
+            save_path = f'./images/{str(i).zfill(3)}.{img_format}'
+            if os.path.exists(save_path):
+                continue
+
+            if i == 0:
+                dummy_img = Image.open('./black.png')
+            else:
+                dummy_img = Image.open(f'./images/{str(i-1).zfill(3)}.{img_format}')
+
+            prompt = self.get_image_prompt(self.info_extractor.segments[i], i, update_dc)
+            buffer_prompts.append(prompt)
+
+            print(f'Generating image {i}: {prompt}')
+            try:
+                prompt = self.generate_image(prompt, save_path, img_format, self.info_extractor.segments[i], i, threshold=0.6, max_generations=1)
+                image_prompts.append(prompt)
+            except Exception as e:
+                dummy_img.save(save_path, format=img_format)
+                print(f"Error generating image for segment {i}: {e}")
+                continue
+        
+        self.prompts['final'] = image_prompts
+        self.prompts['buffer'] = buffer_prompts
+
+    def save_prompts(self):
+        with open(self.save_path + '/final_prompts.txt', 'w') as file:
+            file.writelines(s + '\n' for s in self.prompts['final'])
+
+        with open(self.save_path + '/buffer_prompts.txt', 'w') as file:
+            file.writelines(s + '\n' for s in self.prompts['buffer'])

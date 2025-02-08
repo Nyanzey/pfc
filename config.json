@@ -2,12 +2,12 @@
     "Text-to-Text": {
         "source": "meta",
         "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "requires_key": false
+        "requires_key": true
     },
     "Text-to-Image": {
-        "source": "openai",
-        "model": "dall-e-2",
-        "requires_key": true 
+        "source": "sd",
+        "model": "state",
+        "requires_key": false
     },
     "Language": "en",
     "Context_Length": 50
