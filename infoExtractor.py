@@ -5,16 +5,21 @@ from pathlib import Path
 import json
 
 class InfoExtractor:
-    def __init__(self, input_path=None, config_path=None, save_path=None, model_manager:myapi.ModelManager=None):
+    def __init__(self, input_path=None, config_path=None, save_path=None, model_manager:myapi.ModelManager=None, logger=None):
         self.input_path = input_path
         self.save_path = save_path
         self.model_manager = model_manager
         self.DC = None
         self.segments = None
+        self.logger = logger
 
         if config_path:
             with open(config_path, 'r') as file:
                 self.config = json.load(file)
+
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
+            
 
     def format_prompt(self, type, input):
         with open(f"./staticPrompts/{type}.txt", 'r') as file:
@@ -129,10 +134,12 @@ class InfoExtractor:
         system_prompt = "You are a story analyzer."
 
         if os.path.exists(self.save_path + '/dictionary.txt') and not regenerate_always:
-            print('Using buffered DC')
+            if self.logger:
+                self.logger.log('Using buffered DC')
             raw_DC = Path(self.save_path + '/dictionary.txt').read_text(encoding='utf-8')
         else:
-            print('Creating DC .....')
+            if self.logger:
+                self.logger.log('Creating DC .....')
             createDC_prompt = self.format_prompt('createDC', input_dict)
             
             raw_DC = self.model_manager.text_query(createDC_prompt, system_prompt)
@@ -172,17 +179,20 @@ class InfoExtractor:
         current = []
         total = 0
         for line in lines:
-            print('line:', line)
+            if self.logger:
+                self.logger.log('line:', line)
             current.append(line)
             total += len(line)
-            print('total:', total)
+            if self.logger:
+                self.logger.log('total:', total)
             if total >= (context_length/100)*total_length:
                 parts.append('\n'.join(current))
                 current = []
                 total = 0
         if current:
             parts.append('\n'.join(current))
-        print(f'split into {len(parts)} parts')
+        if self.logger:
+            self.logger.log(f'split into {len(parts)} parts')
                     
         context = "This is the beginning of the story so there is no context to provide yet."
         all_segments = None
@@ -193,7 +203,8 @@ class InfoExtractor:
             segments_prompt = self.format_prompt('segment', input_dict)
 
             raw_segments = self.model_manager.text_query(segments_prompt, system_prompt)
-            print(raw_segments)
+            if self.logger:
+                self.logger.log(raw_segments)
             all_segments, context = self.append_segments(raw_segments, all_segments)
 
         
@@ -206,10 +217,12 @@ class InfoExtractor:
     def segment_story(self, segment_method=llm_part_segment, regenerate_always=False):
 
         if os.path.exists(self.save_path + '/segments.txt') and not regenerate_always:
-                print('Using buffered segments')
-                all_segments = Path(self.save_path + '/segments.txt').read_text(encoding='utf-8')
+            if self.logger:
+                self.logger.log('Using buffered segments')
+            all_segments = Path(self.save_path + '/segments.txt').read_text(encoding='utf-8')
         else:
-            print('Segmenting story .....')
+            if self.logger:
+                self.logger.log('Segmenting story .....')
             all_segments = segment_method(self)
 
         self.segments = self.parse_segment(all_segments)

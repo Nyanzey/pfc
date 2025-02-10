@@ -105,14 +105,14 @@ class ModelManager:
 
     def text_query(self, user_prompt, system_prompt):
         if self.config['Text-to-Text']['source'] == 'openai':
-            return self.query_text_openai(self.config['model'], user_prompt, system_prompt)
+            return self.query_text_openai(self.config['Text-to-Text']['model'], user_prompt, system_prompt)
         elif self.config['Text-to-Text']['source'] == 'meta':
             return self.query_text_llama(user_prompt, system_prompt)
         return None
     
     def image_query(self, prompt):
         if self.config['Text-to-Image']['source'] == 'openai':
-            return self.query_image_openai(prompt, self.config['model'])
+            return self.query_image_openai(prompt, self.config['Text-to-Image']['model'])
         elif self.config['Text-to-Image']['source'] == 'sd':
-            return self.query_image_sd(prompt, self.config['model'])
+            return self.query_image_sd(prompt, self.config['Text-to-Image']['model'])
         return None

@@ -1,16 +1,18 @@
 import torch
 import numpy as np
 from TTS.api import TTS
+import os
 from jiwer import wer
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 class AudioGenerator:
-    def __init__(self, model_paths=[], output_path='./audios'):
+    def __init__(self, model_paths=[], output_path='./audios', logger=None):
         self.model_paths = model_paths
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.output_path = output_path
         self.quality_matrix = None
         self.chosen_model = None
+        self.logger = logger
 
         modelASR_id = "openai/whisper-large-v3-turbo"
         self.modelASR = AutoModelForSpeechSeq2Seq.from_pretrained(modelASR_id, torch_dtype=torch.float16, low_cpu_mem_usage=True, use_safetensors=True).to(self.device)
@@ -25,6 +27,13 @@ class AudioGenerator:
             device=self.device,
             return_timestamps=True
         )
+
+        if not os.path.exists(self.output_path):
+            os.mkdir(self.output_path)
+
+        for model_path in self.model_paths:
+            if not os.path.exists(f"{self.output_path}/{model_path.split('/')[-1]}"):
+                os.mkdir(f"{self.output_path}/{model_path.split('/')[-1]}")
 
     def generate_audio(self, model_path, text, output_path):
         tts = TTS(model_name=model_path, progress_bar=False).to(self.device)
@@ -48,7 +57,8 @@ class AudioGenerator:
         num_fragments = len(fragments)
         num_models = len(self.model_paths)
         
-        print('Generating audios ...')
+        if self.logger:
+            self.logger.log('Generating audios ...')
         audio_matrix = []
         for i, fragment in enumerate(fragments):
             audios_for_segment = []
@@ -58,7 +68,8 @@ class AudioGenerator:
                 audios_for_segment.append(output_audio_path)
             audio_matrix.append(audios_for_segment)
 
-        print('Evaluating audio quality ...')
+        if self.logger:
+            self.logger.log('Evaluating audio quality ...')
         quality_matrix = np.zeros((num_fragments, num_models))
         for i, audios_for_fragment in enumerate(audio_matrix):
             for j, audio_path in enumerate(audios_for_fragment):
@@ -73,12 +84,15 @@ class AudioGenerator:
         weights = [length / total_length for length in ffragment_lengths]
 
         weighted_scores = np.zeros(num_models)
-        print('Final weighted scores')
+        if self.logger:
+            self.logger.log('Final weighted scores')
         for j in range(num_models):
             weighted_scores[j] = sum(weights[i] * rankings_matrix[i, j] for i in range(num_fragments))
-            print(f'{self.model_paths[j]} : {weighted_scores[j]}')
+            if self.logger:
+                self.logger.log(f'{self.model_paths[j]} : {weighted_scores[j]}')
 
-        print('Discarding models ...')
+        if self.logger:
+            self.logger.log('Discarding models ...')
         remaining_models = list(range(num_models))
         while len(remaining_models) > 1:
             worst_model = remaining_models[np.argmax([weighted_scores[j] for j in remaining_models])]
@@ -87,7 +101,8 @@ class AudioGenerator:
 
         best_model_index = remaining_models[0]
         best_model_path = self.model_paths[best_model_index]
-        print(f"Selected best model: {best_model_path}")
+        if self.logger:
+            self.logger.log(f"Selected best model: {best_model_path}")
 
         self.chosen_model = best_model_path
         return best_model_path
