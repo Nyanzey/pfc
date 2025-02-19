@@ -35,7 +35,7 @@ class SceneGenerator:
                 if self.logger:
                     self.logger.log('Updating ....')
                 input_dict = {
-                'descriptions': self.info_extractor.format_info(self.info_extractor.DC),
+                'descriptions': self.info_extractor.format_info(),
                 'segment': segment['fragment']
                 }
 

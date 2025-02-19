@@ -3,6 +3,38 @@ import os
 import myapi
 from pathlib import Path
 import json
+import spacy
+import copy
+
+trigger_keywords = set([
+    # Location Changes
+    "arrived", "entered", "stepped into", "left", "exited", "moved", "traveled", "reached", "drove to", "flew to", "sailed to", "inside", "outside", "underground", "underwater", "upstairs", "downstairs", "beyond", "across", "through", "city", "town", "village", "forest", "cave", "castle", "school", "home", "hospital", "battlefield", "alley",
+    # Character Appearances & Disappearances
+    "saw", "noticed", "met", "was greeted by", "appeared", "emerged", "introduced", "joined", "encountered", "disappeared", "vanished", "left", "walked away", "ran off", "faded into the distance", "turned away",
+    # Major Actions & Events
+    "exploded", "shattered", "collapsed", "crumbled", "destroyed", "burned", "burst", "imploded", "attacked", "fought", "clashed", "struck", "fired", "dodged", "defended", "lunged", "stabbed", "punched", "ran", "sprinted", "chased", "pursued", "fled", "escaped", "rushed", "hurried", "changed", "transformed", "turned into", "mutated", "evolved", "shifted", "morphed", "storm began", "thunder roared", "rain poured", "snow started", "earthquake struck", "tsunami hit",
+    # Time Progression
+    "later", "suddenly", "moments later", "hours passed", "days later", "weeks after", "years passed", "meanwhile", "at that moment", "just then", "in the meantime", "all of a sudden", "unexpectedly", "spring arrived", "summer heat", "autumn leaves", "winter snow", "the sun set", "dawn broke",
+    # Emotional or Psychological Shifts
+    "stunned", "gasped", "shocked", "heart pounded", "eyes widened", "breath caught", "silence fell", "the air grew tense", "an eerie feeling", "something felt wrong", "an uneasy silence", "finally", "at last", "relief washed over", "everything settled", "quiet returned",
+    # Narrative Markers & Dialogue Cues
+    "later that day", "a few hours passed", "as the sun rose", "by nightfall", "the next morning",
+    # Mystery & Suspense Triggers
+    "uncovered", "discovered", "revealed", "found", "noticed", "realized", "figured out", "stumbled upon", "a shadow moved", "the air felt strange", "something wasn't right", "an ominous presence"
+])
+
+# Helper functions
+def extract_active_characters(doc, character_list):
+    active_characters = set()
+    for token in doc:
+        # If the token is a verb, find its subject
+        if token.pos_ == "VERB":
+            for child in token.children:
+                if child.dep_ in ("nsubj", "nsubjpass") and child.text in character_list:
+                    active_characters.add(child.text)
+                elif child.dep_ == "pobj" and token.lemma_ in ("fight", "run", "help", "join", "defend"):
+                    active_characters.add(child.text)
+    return active_characters
 
 class InfoExtractor:
     def __init__(self, input_path=None, config_path=None, save_path=None, model_manager:myapi.ModelManager=None, logger=None):
@@ -17,8 +49,9 @@ class InfoExtractor:
             with open(config_path, 'r') as file:
                 self.config = json.load(file)
 
-        if not os.path.exists(self.save_path):
-            os.mkdir(self.save_path)
+        if save_path:
+            if not os.path.exists(self.save_path):
+                os.mkdir(self.save_path)
             
 
     def format_prompt(self, type, input):
@@ -33,6 +66,8 @@ class InfoExtractor:
         elif type == "segment":
             prompt = prompt.replace("![narrative]", input["narrative"])
             prompt = prompt.replace("![context]", input["context"])
+        elif type == "identifyCharsInP":
+            prompt = prompt.replace("![paragraph]", input["paragraph"])
         else:
             prompt = prompt.replace("![descriptions]", input["descriptions"])
             prompt = prompt.replace("![segment]", input["segment"])
@@ -180,11 +215,11 @@ class InfoExtractor:
         total = 0
         for line in lines:
             if self.logger:
-                self.logger.log('line:', line)
+                self.logger.log('line: ' + line)
             current.append(line)
             total += len(line)
             if self.logger:
-                self.logger.log('total:', total)
+                self.logger.log('total:' + str(total))
             if total >= (context_length/100)*total_length:
                 parts.append('\n'.join(current))
                 current = []
@@ -210,9 +245,61 @@ class InfoExtractor:
         
         return all_segments
 
+    # Format: [<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)
+    def format_segments_out(self, segments):
+        result = ''
+        for segment in segments:
+            result += f"[{segment}][YES-YES](An incredibly hard and dangerous stick made of hot meat about to bust)"
+        return result
+
+    # Algorithm idea:
+    # Step 1: Separate the story in sentences based on points
+    # Step 2: Initialize feature dictionary (characters, location, keywords)
+    # Step 3: For each sentence:
+        # Step 3.1: Look for characers by finding substrings in the sentence (use the DC), use keywords to consider only characters that interact in the current scene.
+        # Step 3.2: User the NER model to find locations
+        # Step 3.3: Check for special keywords that indicate a scene change. Use keywods for characters as well.
+        # Step 3.4: Based on the information retrieved, decide if the sentence starts a new segment or not.
     def custom_segment(self):
-        # to be implemented
-        pass
+        with open(self.input_path, 'r', encoding='utf-8') as file:
+            story = file.read()
+
+        nlp = spacy.load("en_core_web_sm")
+        doc = nlp(story)
+        sentences = doc.sents
+        current_info = {'characters': set(), 'location': set(), 'keywords': set()}
+        char_list = [char for char in self.DC['characters'].keys()]
+        char_list = char_list + self.config['check_subjects']
+        self.logger.log(f'Characters for segmentation: {char_list}')
+        current_segment = ''
+        segments = []
+        for sentence in sentences:
+            self.logger.log(f'sentence: {sentence.text}')
+            last_info = copy.deepcopy(current_info)
+            # Step 3.1
+            active_characters = extract_active_characters(sentence, char_list)
+            current_info['characters'] = active_characters
+
+            # Step 3.2
+            entities = self.model_manager.recognize_entities(sentence.text)
+            current_info['location'].update(entities['places'])
+
+            # Step 3.3
+            words = set(sentence.text.lower().split())
+            current_info["keywords"] = words.intersection(trigger_keywords)
+
+            # Step 3.4
+            char_diff = current_info["characters"]-last_info["characters"]
+            loc_diff = current_info["location"]-last_info["location"]
+            if char_diff or loc_diff or current_info["keywords"]:
+                self.logger.log(f'Diff: {char_diff} {loc_diff} {current_info["keywords"]}')
+                if current_segment:
+                    segments.append(current_segment)
+                current_segment = sentence.text
+            else:
+                current_segment += sentence.text
+
+        return self.format_segments_out(segments)
 
     def segment_story(self, segment_method=llm_part_segment, regenerate_always=False):
 
@@ -223,7 +310,7 @@ class InfoExtractor:
         else:
             if self.logger:
                 self.logger.log('Segmenting story .....')
-            all_segments = segment_method(self)
+            all_segments = segment_method()
 
         self.segments = self.parse_segment(all_segments)
         return self.segments

@@ -28,7 +28,7 @@ logger = Logger(log_dir)
 # Step 1 and 2
 logger.log('Entering step 1 and 2')
 
-input_path = "./input/test.txt"
+input_path = "./input/redhood.txt"
 config_path = "./config.json"
 save_path = "./dynamicPrompts"
 output_audio_path = "./audios"
@@ -38,7 +38,7 @@ model_manager = ModelManager(config_path)
 
 info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager, logger)
 info_extractor.get_characteristics(regenerate_always=False)
-info_extractor.segment_story(regenerate_always=False)
+info_extractor.segment_story(regenerate_always=True, segment_method=info_extractor.custom_segment)
 info_extractor.save_all()
 
 logger.log(len(info_extractor.DC))
@@ -93,7 +93,7 @@ output_path = f'./output/' + input("Name for output video: ") + '.mp4'
 
 for i in range(len(info_extractor.segments)):
     images.append(f'./images/{str(i).zfill(3)}.{image_format}')
-    audios.append(f'./audios/{best_tts_name}/audio_segment_{i}.wav')
+    audios.append(f'./audios/{best_tts_name}/audio_fragment_{i}.wav')
 
 VA.create_narrative_video(images, audios, output_path)
 
