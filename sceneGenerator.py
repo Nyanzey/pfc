@@ -64,11 +64,8 @@ class SceneGenerator:
         return image_prompt
 
     def generate_image(self, prompt, save_path, img_format, segment, id, threshold=0.7, max_generations=1):
-        image_url = self.model_manager.image_query(prompt)
-        if self.logger:
-            self.logger.log(f'Image url: {image_url}')
+        image_url = self.model_manager.image_query(prompt, save_path, img_format)
 
-        self.save_image(image_url, save_path, img_format)
         image = Image.open(save_path)
 
         if self.logger:
@@ -84,8 +81,7 @@ class SceneGenerator:
                 self.logger.log("Regenerating ...")
             prompt = self.get_image_prompt(segment, id, update_dc=False)
 
-            image_url = self.model_manager.image_query(prompt)
-            self.save_image(image_url, save_path, img_format)
+            image_url = self.model_manager.image_query(prompt, save_path, img_format)
 
             image = Image.open(save_path)
             
@@ -94,11 +90,6 @@ class SceneGenerator:
                 self.logger.log(f'Similarity: {sim}')
             generations += 1
         return prompt
-
-    def save_image(self, image_url, save_path, img_format):
-        image_data = requests.get(image_url).content
-        image = Image.open(BytesIO(image_data))
-        image.save(save_path, format=img_format)
 
     def get_similarity(self, image, prompt, model, processor):
 
@@ -142,12 +133,16 @@ class SceneGenerator:
                     self.logger.log(f"Error generating image for segment {i}: {e}")
                 continue
         
+        self.logger.log(f'prompts: {image_prompts}')
+        self.logger.log(f'buffer prompts: {buffer_prompts}')
         self.prompts['final'] = image_prompts
         self.prompts['buffer'] = buffer_prompts
 
     def save_prompts(self):
-        with open(self.save_path + '/final_prompts.txt', 'w') as file:
-            file.writelines(s + '\n' for s in self.prompts['final'])
+        if self.prompts['final']:
+            with open(self.save_path + '/final_prompts.txt', 'w') as file:
+                file.writelines(s + '\n' for s in self.prompts['final'])
 
-        with open(self.save_path + '/buffer_prompts.txt', 'w') as file:
-            file.writelines(s + '\n' for s in self.prompts['buffer'])
+        if self.prompts['buffer']:
+            with open(self.save_path + '/buffer_prompts.txt', 'w') as file:
+                file.writelines(s + '\n' for s in self.prompts['buffer'])

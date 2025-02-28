@@ -53,7 +53,7 @@ class AudioGenerator:
         
         return quality_score
 
-    def select_best_tts_model(self, fragments):
+    def select_best_tts_model(self, fragments, regenerate_always=False):
         num_fragments = len(fragments)
         num_models = len(self.model_paths)
         
@@ -64,6 +64,8 @@ class AudioGenerator:
             audios_for_segment = []
             for model_path in self.model_paths:
                 output_audio_path = f"{self.output_path}/{model_path.split('/')[-1]}/audio_fragment_{i}.wav"
+                if not regenerate_always and os.path.exists(output_audio_path):
+                    continue
                 self.generate_audio(model_path, fragment, output_audio_path)
                 audios_for_segment.append(output_audio_path)
             audio_matrix.append(audios_for_segment)

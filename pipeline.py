@@ -28,23 +28,26 @@ logger = Logger(log_dir)
 # Step 1 and 2
 logger.log('Entering step 1 and 2')
 
-input_path = "./input/redhood.txt"
+input_path = "./input/test2.txt"
 config_path = "./config.json"
 save_path = "./dynamicPrompts"
 output_audio_path = "./audios"
 output_image_path = "./images"
 
-model_manager = ModelManager(config_path)
+model_manager = ModelManager(config_path, logger=logger)
 
 info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager, logger)
 info_extractor.get_characteristics(regenerate_always=False)
-info_extractor.segment_story(regenerate_always=True, segment_method=info_extractor.custom_segment)
+info_extractor.segment_story(regenerate_always=False, segment_method=info_extractor.llm_part_segment)
 info_extractor.save_all()
 
 logger.log(len(info_extractor.DC))
 logger.log(len(info_extractor.segments))
 
 logger.log('Finished step 1 and 2')
+
+if (input("continue? (y/n): ") != 'y'):
+    exit()
 
 logger.log('Entering step 3 and 4')
 
@@ -63,6 +66,9 @@ scene_generator.info_extractor.save_all()
 
 logger.log('Finished step 3 and 4')
 
+if (input("continue? (y/n): ") != 'y'):
+    exit()
+
 logger.log('Entering step 5')
 
 # Step 5
@@ -78,11 +84,14 @@ audio_generator = AG.AudioGenerator(audio_models, output_audio_path, logger)
 
 logger.log(fragments)
 
-best_tts = audio_generator.select_best_tts_model(fragments)
+best_tts = audio_generator.select_best_tts_model(fragments, regenerate_always=False)
 best_tts_name = best_tts.split('/')[-1]
 logger.log(f'Best tts: {best_tts_name}')
 
 logger.log('Finished step 5')
+
+if (input("continue? (y/n): ") != 'y'):
+    exit()
 
 logger.log('Entering step 6')
 
@@ -95,13 +104,22 @@ for i in range(len(info_extractor.segments)):
     images.append(f'./images/{str(i).zfill(3)}.{image_format}')
     audios.append(f'./audios/{best_tts_name}/audio_fragment_{i}.wav')
 
-VA.create_narrative_video(images, audios, output_path)
+#VA.create_narrative_video(images, audios, output_path)
 
 logger.log('Finished step 6')
 
 logger.log('Evaluating CM ...')
 
 # Evaluation
+
+eval_prompts = scene_generator.prompts['final']
+if len(eval_prompts) < len(info_extractor.segments):
+    eval_prompts = scene_generator.prompts['buffer']
+if not eval_prompts:
+    with open(scene_generator.save_path + '/buffer_prompts.txt', 'r') as file:
+        eval_prompts = file.readlines()
+
+evaluator = eval.Evaluation(0.5, 0.25, 0.25, scene_generator, scene_generator.logger)
 val_images = []
 for i in range(len(info_extractor.segments)):
     img_path = f'./images/{str(i).zfill(3)}.{image_format}'
@@ -113,5 +131,5 @@ for i in range(len(info_extractor.segments)):
     audio_path = audios_dir + f'audio_fragment_{i}.wav'
     val_transcriptions.append(audio_generator.transcribe_audio(audio_path))
 
-score = eval.calculate_cm(fragments, scene_generator.prompts['buffer'], val_images, val_transcriptions)
+score = evaluator.calculate_cm(fragments, eval_prompts, val_images, val_transcriptions)
 logger.log(f'Final metric score: {score}')

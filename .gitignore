@@ -4,7 +4,6 @@ images/*
 openai_apikey.txt
 hf_token.txt
 testapi.py
-test.py
 myenv/
 audios/
 dynamicPrompts/

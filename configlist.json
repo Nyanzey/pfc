@@ -5,7 +5,7 @@
         "requires_key": [true, false] 
     },
     "Text-to-Image": {
-        "source": ["openai", "sd"],
+        "source": ["openai", "diffusion"],
         "model": ["dall-e-2", "dall-e-3"],
         "requires_key": [true, false] 
     },

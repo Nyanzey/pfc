@@ -6,6 +6,7 @@ import json
 import spacy
 import copy
 
+
 trigger_keywords = set([
     # Location Changes
     "arrived", "entered", "stepped into", "left", "exited", "moved", "traveled", "reached", "drove to", "flew to", "sailed to", "inside", "outside", "underground", "underwater", "upstairs", "downstairs", "beyond", "across", "through", "city", "town", "village", "forest", "cave", "castle", "school", "home", "hospital", "battlefield", "alley",
@@ -52,7 +53,6 @@ class InfoExtractor:
         if save_path:
             if not os.path.exists(self.save_path):
                 os.mkdir(self.save_path)
-            
 
     def format_prompt(self, type, input):
         with open(f"./staticPrompts/{type}.txt", 'r') as file:
@@ -157,7 +157,7 @@ class InfoExtractor:
 
         if self.segments:
             for segment in self.segments:
-                result.append(f"[{segment['fragment']}]\n[{segment['appearance_change']} - {segment['scene_change']}]\n({segment['prompt']})")
+                result.append(f"[{segment['fragment']}]\n[{'YES' if segment['appearance_change'] else 'NO'}-{'YES' if segment['scene_change'] else 'NO'}]\n({segment['prompt']})")
 
         return "\n".join(result)
 
@@ -239,13 +239,13 @@ class InfoExtractor:
 
             raw_segments = self.model_manager.text_query(segments_prompt, system_prompt)
             if self.logger:
+                self.logger.log(f'LLM input: {segments_prompt}')
                 self.logger.log(raw_segments)
             all_segments, context = self.append_segments(raw_segments, all_segments)
 
         
         return all_segments
 
-    # Format: [<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)
     def format_segments_out(self, segments):
         result = ''
         for segment in segments:
@@ -270,7 +270,6 @@ class InfoExtractor:
         current_info = {'characters': set(), 'location': set(), 'keywords': set()}
         char_list = [char for char in self.DC['characters'].keys()]
         char_list = char_list + self.config['check_subjects']
-        self.logger.log(f'Characters for segmentation: {char_list}')
         current_segment = ''
         segments = []
         for sentence in sentences:
@@ -292,12 +291,13 @@ class InfoExtractor:
             char_diff = current_info["characters"]-last_info["characters"]
             loc_diff = current_info["location"]-last_info["location"]
             if char_diff or loc_diff or current_info["keywords"]:
-                self.logger.log(f'Diff: {char_diff} {loc_diff} {current_info["keywords"]}')
                 if current_segment:
                     segments.append(current_segment)
                 current_segment = sentence.text
             else:
                 current_segment += sentence.text
+        if current_segment:
+            segments.append(current_segment)
 
         return self.format_segments_out(segments)
 
@@ -316,8 +316,8 @@ class InfoExtractor:
         return self.segments
 
     def save_all(self):
-        with open(self.save_path + '/dictionary.txt', 'w') as file:
+        with open(self.save_path + '/dictionary.txt', 'w', encoding='utf-8') as file:
             file.write(self.info_to_string())
 
-        with open(self.save_path + '/segments.txt', 'w') as file:
+        with open(self.save_path + '/segments.txt', 'w', encoding='utf-8') as file:
             file.write(self.segments_to_string())
