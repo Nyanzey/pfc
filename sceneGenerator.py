@@ -1,25 +1,30 @@
 import infoExtractor as IE
-import requests
 from PIL import Image
-from io import BytesIO
 import myapi
 import json
 import os
 from torch.nn.functional import cosine_similarity
 import torch
+import open_clip
 
 class SceneGenerator:
-    def __init__(self, config_path=None, save_path=None, output_image_path=None, info_extractor:IE.InfoExtractor=None, image_captioning_model=None, image_captioning_processor=None, sentence_model=None, model_manager:myapi.ModelManager=None, logger=None):
+    def __init__(self, config_path=None, save_path=None, output_image_path=None, info_extractor:IE.InfoExtractor=None, model_manager:myapi.ModelManager=None, logger=None):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.info_extractor = info_extractor
-        self.image_captioning_model = image_captioning_model.to(self.device)
-        self.image_captioning_processor = image_captioning_processor
-        self.sentence_model = sentence_model
-        self.prompts = {}
-        self.save_path = save_path
-        self.model_manager = model_manager
-        self.output_image_path = output_image_path
-        self.logger = logger
+        self.info_extractor = info_extractor # For segment and DC
+
+        # For text-image similarity
+        model_name = 'hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k' # Was good during testing so not considered in config
+        self.clip_model, _, self.clip_preprocess = open_clip.create_model_and_transforms(model_name, cache_dir='F:\\modelscache', device=self.device)
+        self.clip_model.eval() # Changing mode to evaluation, its train by default
+        self.clip_tokenizer = open_clip.get_tokenizer(model_name)
+        
+        # Save paths
+        self.save_path = save_path 
+        self.output_image_path = output_image_path 
+
+        self.model_manager = model_manager # For querying models        
+        self.logger = logger # For logging
+        self.prompts = {} # To store final and buffer prompts
 
         if config_path:
             with open(config_path, 'r') as file:
@@ -60,7 +65,9 @@ class SceneGenerator:
 
         compose_prompt = self.info_extractor.format_prompt('finalP', input_dict)
         compose_raw = self.model_manager.text_query(compose_prompt, 'You are a story analyzer.')
-        image_prompt = self.info_extractor.parse_final_prompt(compose_raw)
+        image_prompt = self.info_extractor.parse_final_prompt(compose_raw.lower())
+        if not image_prompt:
+            image_prompt = segment['prompt']
         return image_prompt
 
     def generate_image(self, prompt, save_path, img_format, segment, id, threshold=0.7, max_generations=1):
@@ -71,7 +78,7 @@ class SceneGenerator:
         if self.logger:
             self.logger.log(f'validating {save_path} .....')
         
-        sim = self.get_similarity(image, prompt, self.image_captioning_model, self.image_captioning_processor)
+        sim, probs = self.get_similarity(image, prompt)
         if self.logger:
             self.logger.log(f'Similarity: {sim}')
 
@@ -85,25 +92,25 @@ class SceneGenerator:
 
             image = Image.open(save_path)
             
-            sim = self.get_similarity(image, prompt, self.image_captioning_model, self.image_captioning_processor)
+            sim, probs = self.get_similarity(image, prompt)
             if self.logger:
                 self.logger.log(f'Similarity: {sim}')
             generations += 1
         return prompt
 
-    def get_similarity(self, image, prompt, model, processor):
+    def get_similarity(self, image, prompt):
+        image = self.clip_preprocess(image).unsqueeze(0).to(self.device)
+        text = self.clip_tokenizer(prompt).to(self.device)
+        with torch.no_grad(), torch.amp.autocast('cuda'):
+            image_features = self.clip_model.encode_image(image)
+            text_features = self.clip_model.encode_text(text)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
 
-        inputs = processor(image, return_tensors="pt").to(self.device)
+            sim = cosine_similarity(image_features, text_features).cpu().item()
+            text_probs = (100.0 * image_features @ text_features.T).softmax(dim=-1)
 
-        out = model.generate(**inputs)
-        predicted = processor.decode(out[0], skip_special_tokens=True)
-
-        embedding1 = self.sentence_model.encode(prompt, convert_to_tensor=True)
-        embedding2 = self.sentence_model.encode(predicted, convert_to_tensor=True)
-
-        cos_sim = cosine_similarity(embedding1, embedding2, dim=-1)
-
-        return cos_sim.item()
+            return sim, text_probs
     
     def generate_scenes(self, update_dc=True, img_format='png', similarity_threshold=0.7, max_generations=1):
         image_prompts = []

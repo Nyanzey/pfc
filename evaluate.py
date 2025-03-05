@@ -25,7 +25,8 @@ class Evaluation:
     def calculate_vac(self, story_segments, prompts, images, audios):
         Cpi = []
         for prompt, image in zip(prompts, images):
-            Cpi.append(self.SG.get_similarity(image, prompt, self.cap_model, self.cap_processor))
+            sim, probs = self.SG.get_similarity(image, prompt)
+            Cpi.append(sim)
 
         Csa = []
         total_length = sum(len(seg) for seg in story_segments)
@@ -44,11 +45,13 @@ class Evaluation:
         VAC = ((sum(Cpi) / (len(prompts)) + sum(Csa)) / 2)
         return VAC
 
+    # Will be replaced with a composition of more metrics, it will be done in Matlab
     def calculate_iqs(self, images):
         scores = []
         for image in images:
             scores.append(self.brisque.get_score(np.asarray(image)))
         self.logger.log(scores)
+        scores = [score if score else 0 for score in scores]
         IQS = 1 - (sum(scores) / (len(scores) * 100))
         return IQS
 

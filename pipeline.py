@@ -57,10 +57,10 @@ img_captioning_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-
 img_captioning_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
 stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
 
-scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, img_captioning_model, img_captioning_processor, stc_model, model_manager, logger)
+scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, model_manager, logger)
 
 image_format = 'png'
-scene_generator.generate_scenes(img_format=image_format)
+scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.4) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
 scene_generator.save_prompts()
 scene_generator.info_extractor.save_all()
 
@@ -104,7 +104,7 @@ for i in range(len(info_extractor.segments)):
     images.append(f'./images/{str(i).zfill(3)}.{image_format}')
     audios.append(f'./audios/{best_tts_name}/audio_fragment_{i}.wav')
 
-#VA.create_narrative_video(images, audios, output_path)
+VA.create_narrative_video(images, audios, output_path)
 
 logger.log('Finished step 6')
 

@@ -1,7 +1,10 @@
 # File for testing and experimenting with stuff
 
 import os
+
+import torch.amp
 os.environ['HF_HOME'] = 'F:\\modelscache'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 from diffusers import DiffusionPipeline
 from diffusers import FluxPipeline
@@ -14,6 +17,9 @@ from myapi import ModelManager
 import re
 import spacy
 from PIL import Image
+import open_clip
+from torch.nn.functional import cosine_similarity
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -188,4 +194,37 @@ def multiplicate_image(n, img_path, output_path):
     for i in range(n):
         img.save(f'{output_path}/{str(i).zfill(3)}.png')
 
-generate_flux("A female anime character standing in a lush, enchanted forest at sunrise. She has long, flowing silver hair with soft lavender tips, gently swaying in the breeze. Her large, expressive violet eyes sparkle with curiosity and determination. She wears an elegant, intricately designed kimono in shades of deep blue and white, adorned with delicate floral patterns resembling cherry blossoms. A shimmering, translucent cape flows from her shoulders, catching the golden rays of the morning sun. She holds a slender, ornate staff topped with a glowing crystal, radiating a soft, magical aura. The forest around her is vibrant with towering ancient trees, glowing flowers, and faint mystical lights floating in the air. Soft beams of sunlight filter through the leaves, creating a warm, ethereal atmosphere. Her expression is calm yet confident, as if ready for an epic journey.", "A dark and stormy night over the ocean")
+def summarize_text(text, max_length=100, min_length=30):
+    summarizer = hf_pipeline("summarization", model="facebook/bart-large-cnn", device=device)
+
+    summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
+    out = summary[0]['summary_text']
+    return out
+
+def get_similarity(image_path, prompt, model_name):
+  model, _, preprocess = open_clip.create_model_and_transforms(model_name, cache_dir='F:\\modelscache', device=device)
+  model.eval()  # model in train mode by default, impacts some models with BatchNorm or stochastic depth active
+  tokenizer = open_clip.get_tokenizer(model_name)
+  image = preprocess(Image.open(image_path)).unsqueeze(0).to(device)
+  text = tokenizer(prompt).to(device)
+  with torch.no_grad(), torch.amp.autocast('cuda'):
+    image_features = model.encode_image(image)
+    text_features = model.encode_text(text)
+    image_features /= image_features.norm(dim=-1, keepdim=True)
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+    sim = cosine_similarity(image_features, text_features).cpu().item()
+    text_probs = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+
+    return sim, text_probs
+
+long_promp = "In a mystical landscape, seven glowing Dragon Balls are scattered across an ancient map. The orbs shimmer with a magical aura, hinting at the powerful wish they hold. Above the scene, the ethereal dragon, Shenron, looms majestically, his serpentine form twisting through the clouds, eyes glowing with an ancient wisdom. Around this mythical event, a variety of characters are poised for adventure: Son Goku, a small and muscular boy with a monkey-like tail and spiky black hair, stands ready in his orange martial arts gi, gripping the magical Power Pole. Beside him, Bulma, with her striking blue ponytail and practical yet feminine pink dress, inspects the Dragon Balls with a high-tech device, her expression a blend of curiosity and determination. Master Roshi, the wise and comical elder, observes with his thick glasses perched on his nose, wearing an orange Hawaiian shirt and light blue shorts, exuding a relaxed disposition. Yamcha, the rugged desert bandit, stands with his long, untamed black hair and confident demeanor, dressed in loose-fitting attire, full of daring resolve. The scene embodies the legend's call to adventure, illuminated by the promise of the dragon's impending arrival and the tension between quests for peace and power."
+
+short_prompt = summarize_text(long_promp, max_length=100, min_length=30)
+
+generate_sdxl("Goku faces King Piccolo, a menacing demon king with green skin and pointed ears. The scene is charged with energy, showcasing an epic battle. The serene landscape transforms into a grand arena.", "")
+
+#sim, text_probs = get_similarity("anime.png", long_promp, 'hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k')
+#print("Label probs:", sim) 
+
+#generate_flux("A female anime character standing in a lush, enchanted forest at sunrise. She has long, flowing silver hair with soft lavender tips, gently swaying in the breeze. Her large, expressive violet eyes sparkle with curiosity and determination. She wears an elegant, intricately designed kimono in shades of deep blue and white, adorned with delicate floral patterns resembling cherry blossoms. A shimmering, translucent cape flows from her shoulders, catching the golden rays of the morning sun. She holds a slender, ornate staff topped with a glowing crystal, radiating a soft, magical aura. The forest around her is vibrant with towering ancient trees, glowing flowers, and faint mystical lights floating in the air. Soft beams of sunlight filter through the leaves, creating a warm, ethereal atmosphere. Her expression is calm yet confident, as if ready for an epic journey.", "A dark and stormy night over the ocean")

@@ -6,11 +6,12 @@
     },
     "Text-to-Image": {
         "source": "diffusion",
-        "model": "",
-        "requires_key": false
+        "model": "stabilityai/stable-diffusion-xl-base-1.0",
+        "requires_key": false,
+        "Summarize Prompt": true
     },
     "Language": "en",
     "Segment Method": "llm_chunk",
     "Context_Length": 50,
-    "check_subjects": ["he", "she", "it", "they", "we", "you", "I", "Goku", "Bulma", "Krillin", "Piccolo", "Oolong"]
+    "check_subjects": ["he", "she", "it", "they", "we", "you", "I"]
 }
