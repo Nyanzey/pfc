@@ -39,10 +39,11 @@ model_manager = ModelManager(config_path, logger=logger)
 info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager, logger)
 info_extractor.get_characteristics(regenerate_always=False)
 info_extractor.segment_story(regenerate_always=False, segment_method=info_extractor.llm_part_segment)
+#info_extractor.process_changes()
 info_extractor.save_all()
 
-logger.log(len(info_extractor.DC))
-logger.log(len(info_extractor.segments))
+logger.log(f'DC length: {len(info_extractor.DC)}')
+logger.log(f'Total segments: {len(info_extractor.segments)}')
 
 logger.log('Finished step 1 and 2')
 

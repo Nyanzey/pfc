@@ -34,28 +34,9 @@ class SceneGenerator:
         if not os.path.exists(self.output_image_path):
             os.mkdir(self.output_image_path)
 
-    def get_image_prompt(self, segment, id, update_dc=True):
-        if update_dc:
-            if segment['appearance_change'] or segment['scene_change']:
-                if self.logger:
-                    self.logger.log('Updating ....')
-                input_dict = {
-                'descriptions': self.info_extractor.format_info(),
-                'segment': segment['fragment']
-                }
-
-                update_prompt = self.info_extractor.format_prompt('updateDC', input_dict)
-                updatedDC_raw = self.model_manager.text_query(update_prompt, 'You are a story analyzer.')
-
-                updatedDC = self.info_extractor.parse_info(updatedDC_raw)
-                for name, description in updatedDC['characters'].items():
-                    if len(description) > 5:
-                        self.info_extractor.DC['characters'][name] = description
-                if 'scene' in updatedDC and len(updatedDC['scene']) > 5:
-                    self.info_extractor.DC['scene'] = updatedDC['scene']
-        
+    def get_image_prompt(self, segment, segment_number):
         input_dict = {
-            'descriptions': self.info_extractor.format_info(),
+            'descriptions': self.info_extractor.format_info(segment_number),
             'segment': segment['fragment'],
             'initial': segment['prompt']
         }
@@ -86,7 +67,7 @@ class SceneGenerator:
         while sim < threshold and generations < max_generations:
             if self.logger:
                 self.logger.log("Regenerating ...")
-            prompt = self.get_image_prompt(segment, id, update_dc=False)
+            prompt = self.get_image_prompt(segment, id)
 
             image_url = self.model_manager.image_query(prompt, save_path, img_format)
 
@@ -112,7 +93,7 @@ class SceneGenerator:
 
             return sim, text_probs
     
-    def generate_scenes(self, update_dc=True, img_format='png', similarity_threshold=0.7, max_generations=1):
+    def generate_scenes(self, img_format='png', similarity_threshold=0.7, max_generations=1):
         image_prompts = []
         buffer_prompts = []
 
@@ -126,7 +107,7 @@ class SceneGenerator:
             else:
                 dummy_img = Image.open(f'{self.output_image_path}/{str(i-1).zfill(3)}.{img_format}')
 
-            prompt = self.get_image_prompt(self.info_extractor.segments[i], i, update_dc)
+            prompt = self.get_image_prompt(self.info_extractor.segments[i], i)
             buffer_prompts.append(prompt)
 
             if self.logger:

@@ -6,12 +6,11 @@
     },
     "Text-to-Image": {
         "source": "diffusion",
-        "model": "stabilityai/stable-diffusion-xl-base-1.0",
+        "model": "sd-legacy/stable-diffusion-v1-5",
         "requires_key": false,
         "Summarize Prompt": true
     },
     "Language": "en",
     "Segment Method": "llm_chunk",
-    "Context_Length": 50,
-    "check_subjects": ["he", "she", "it", "they", "we", "you", "I"]
+    "Context_Length": 50
 }

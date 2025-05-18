@@ -42,7 +42,7 @@ class InfoExtractor:
         self.input_path = input_path
         self.save_path = save_path
         self.model_manager = model_manager
-        self.DC = None
+        self.DC = []
         self.segments = None
         self.logger = logger
 
@@ -75,31 +75,82 @@ class InfoExtractor:
 
         return prompt
 
-    def parse_info(self, response):
-        parsed_data = {
-            "characters": {},
-            "scene": ""
-        }
-        
-        character_pattern = r'\[(.*?)\]\((.*?)\)'
-        characters = re.findall(character_pattern, response)
+    def parse_info(self, response, whole=False):
+        if not whole:
+            # Original single-dictionary parsing logic
+            parsed_data = {
+                "characters": {},
+                "scene": ""
+            }
 
-        for name, description in characters:
-            parsed_data["characters"][name] = description.strip()
+            character_pattern = r'\[(.*?)\]\((.*?)\)'
+            characters = re.findall(character_pattern, response)
 
-        if 'scene' in parsed_data["characters"]:
-            del parsed_data["characters"]['scene']
+            for name, description in characters:
+                parsed_data["characters"][name] = description.strip()
 
-        if 'Scene' in parsed_data["characters"]:
-            del parsed_data["characters"]['Scene']
+            # Remove misparsed scene
+            parsed_data["characters"].pop('scene', None)
+            parsed_data["characters"].pop('Scene', None)
 
-        scene_pattern = r'(?i)\[scene\]\((.*?)\)'
-        scene_match = re.search(scene_pattern, response)
-        
-        if scene_match:
-            parsed_data["scene"] = scene_match.group(1).strip()
-        
-        return parsed_data
+            # Scene extraction
+            scene_pattern = r'(?i)\[scene\]\((.*?)\)'
+            scene_match = re.search(scene_pattern, response)
+            if scene_match:
+                parsed_data["scene"] = scene_match.group(1).strip()
+
+            return parsed_data
+
+        else:
+            # Multi-version parsing logic
+            timeline = []
+            current_entry = None
+
+            lines = response.splitlines()
+            header_pattern = r'^DC version (\d+) from segment (\d+) to (None|\d+):$'
+            character_pattern = r'\[(.*?)\]\((.*?)\)'
+
+            for line in lines:
+                line = line.strip()
+
+                # Detect new dictionary version header
+                header_match = re.match(header_pattern, line)
+                if header_match:
+                    if current_entry:
+                        timeline.append(current_entry)
+
+                    version = int(header_match.group(1))
+                    start_segment = int(header_match.group(2))
+                    end_segment_raw = header_match.group(3)
+                    end_segment = int(end_segment_raw) if end_segment_raw != "None" else None
+
+                    current_entry = {
+                        "version": version,
+                        "start_segment": start_segment,
+                        "end_segment": end_segment,
+                        "dc": {
+                            "characters": {},
+                            "scene": ""
+                        }
+                    }
+
+                # Parse character and scene lines
+                elif current_entry:
+                    char_scene_match = re.match(character_pattern, line)
+                    if char_scene_match:
+                        name = char_scene_match.group(1).strip()
+                        desc = char_scene_match.group(2).strip()
+                        if name.lower() == "scene":
+                            current_entry["dc"]["scene"] = desc
+                        else:
+                            current_entry["dc"]["characters"][name] = desc
+
+            # Don't forget to append the last one
+            if current_entry:
+                timeline.append(current_entry)
+
+            print(f"Parsed {len(timeline)} DC versions.")
+            return timeline
 
     def parse_segment(self, response):
         parsed_data = []
@@ -126,28 +177,52 @@ class InfoExtractor:
         else:
             return None
     
-    def info_to_string(self):
+    def get_dict_version(self, segment):
+        for i in range(len(self.DC)):
+            if self.DC[i]['start_segment'] <= segment and (self.DC[i]['end_segment'] is None or self.DC[i]['end_segment'] > segment):
+                return i
+        return -1
+
+    def info_to_string(self, segment):
         result = []
 
-        if "characters" in self.DC:
-            for character, description in self.DC["characters"].items():
+        # Save all versions of the DC
+        if segment == -1:
+            for i in range(len(self.DC)):
+                result.append(f"DC version {i} from segment {self.DC[i]['start_segment']} to {self.DC[i]['end_segment']}:\n")
+                last_dict = self.DC[i]['dc']
+                if "characters" in last_dict:
+                    for character, description in last_dict["characters"].items():
+                        result.append(f"[{character}]({description})")
+
+                if "scene" in last_dict:
+                    result.append(f"[Scene]({last_dict['scene']})")
+                result.append("\n")
+            return "\n".join(result)
+
+        dict_version = self.get_dict_version(segment)
+        last_dict = self.DC[dict_version]['dc']
+        if "characters" in last_dict:
+            for character, description in last_dict["characters"].items():
                 result.append(f"[{character}]({description})")
 
-        if "scene" in self.DC:
-            result.append(f"[Scene]({self.DC['scene']})")
+        if "scene" in last_dict:
+            result.append(f"[Scene]({last_dict['scene']})")
 
         return "\n".join(result)
 
     # DC_to_descriptions
-    def format_info(self):
+    def format_info(self, segment):
         result = []
 
-        if "characters" in self.DC:
-            for character, description in self.DC["characters"].items():
+        dict_version = self.get_dict_version(segment)
+        last_dict = self.DC[dict_version]['dc']
+        if "characters" in last_dict:
+            for character, description in last_dict["characters"].items():
                 result.append(f'{character}:"{description}"')
 
-        if "scene" in self.DC:
-            description = self.DC['scene']
+        if "scene" in last_dict:
+            description = last_dict['scene']
             result.append(f'scene:"{description}"')
 
         return "\n".join(result)
@@ -172,6 +247,7 @@ class InfoExtractor:
             if self.logger:
                 self.logger.log('Using buffered DC')
             raw_DC = Path(self.save_path + '/dictionary.txt').read_text(encoding='utf-8')
+            self.DC = self.parse_info(raw_DC, whole=True)
         else:
             if self.logger:
                 self.logger.log('Creating DC .....')
@@ -182,8 +258,43 @@ class InfoExtractor:
             with open(self.save_path + '/dictionary.txt', 'w', encoding='utf-8') as f:
                 f.write(raw_DC)
 
-        self.DC = self.parse_info(raw_DC)
-        return self.DC
+            self.append_dc(self.parse_info(raw_DC, whole=False), 0)
+
+    def process_changes(self):
+        for i in range(len(self.segments)):
+            segment = self.segments[i]
+            if segment['appearance_change'] or segment['scene_change']:
+                if self.logger:
+                    self.logger.log(f'Segment {i} has changes')
+                input_dict = {
+                    'descriptions': self.format_info(i),
+                    'segment': segment['fragment']
+                }
+
+                update_prompt = self.format_prompt('updateDC', input_dict)
+                updatedDC_raw = self.model_manager.text_query(update_prompt, 'You are a story analyzer.')
+
+                updatedDC = self.parse_info(updatedDC_raw)
+                temp = self.DC[-1]['dc']
+                if "characters" in updatedDC:
+                    for character, description in updatedDC["characters"].items():
+                        if len(description) > 0:
+                            temp["characters"][character] = description
+                if "scene" in updatedDC and len(updatedDC["scene"]) > 0:
+                    temp["scene"] = updatedDC["scene"]
+
+                self.append_dc(temp, i)
+    
+    def append_dc(self, newdc, start):
+        self.DC.append({
+            'start_segment': start,
+            'end_segment': None,
+            'dc': newdc
+        })
+        if len(self.DC) > 1:
+            self.DC[-2]['end_segment'] = start
+
+        self.logger.log(f'Appending DC: {newdc} at segment {start}')
 
     def append_segments(self, src, dest):
         context_idx = src.find('[Context]')
@@ -268,7 +379,7 @@ class InfoExtractor:
         doc = nlp(story)
         sentences = doc.sents
         current_info = {'characters': set(), 'location': set(), 'keywords': set()}
-        char_list = [char for char in self.DC['characters'].keys()]
+        char_list = [char for char in self.DC['characters'].keys()] # not updated
         char_list = char_list + self.config['check_subjects']
         current_segment = ''
         segments = []
@@ -317,7 +428,7 @@ class InfoExtractor:
 
     def save_all(self):
         with open(self.save_path + '/dictionary.txt', 'w', encoding='utf-8') as file:
-            file.write(self.info_to_string())
+            file.write(self.info_to_string(-1))
 
         with open(self.save_path + '/segments.txt', 'w', encoding='utf-8') as file:
             file.write(self.segments_to_string())
