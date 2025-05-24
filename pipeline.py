@@ -28,7 +28,7 @@ logger = Logger(log_dir)
 # Step 1 and 2
 logger.log('Entering step 1 and 2')
 
-input_path = "./input/test2.txt"
+input_path = "./input/chamberofsecrets.txt"
 config_path = "./config.json"
 save_path = "./dynamicPrompts"
 output_audio_path = "./audios"
@@ -39,7 +39,7 @@ model_manager = ModelManager(config_path, logger=logger)
 info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager, logger)
 info_extractor.get_characteristics(regenerate_always=False)
 info_extractor.segment_story(regenerate_always=False, segment_method=info_extractor.llm_part_segment)
-#info_extractor.process_changes()
+#info_extractor.process_changes() # When using buffered info, this is not needed
 info_extractor.save_all()
 
 logger.log(f'DC length: {len(info_extractor.DC)}')
@@ -61,7 +61,7 @@ stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingua
 scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, model_manager, logger)
 
 image_format = 'png'
-scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.4) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
+scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.3, max_generations=0, num_threads=1) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
 scene_generator.save_prompts()
 scene_generator.info_extractor.save_all()
 

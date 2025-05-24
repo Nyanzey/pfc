@@ -8,7 +8,7 @@
         "source": "diffusion",
         "model": "sd-legacy/stable-diffusion-v1-5",
         "requires_key": false,
-        "Summarize Prompt": true
+        "Summarize Prompt": false
     },
     "Language": "en",
     "Segment Method": "llm_chunk",

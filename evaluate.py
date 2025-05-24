@@ -24,9 +24,11 @@ class Evaluation:
         
     def calculate_vac(self, story_segments, prompts, images, audios):
         Cpi = []
+        i = 0
         for prompt, image in zip(prompts, images):
-            sim, probs = self.SG.get_similarity(image, prompt)
-            Cpi.append(sim)
+            coherence = self.SG.get_coherence(image, i, prompt)
+            Cpi.append(coherence["avg"])
+            i += 1
 
         Csa = []
         total_length = sum(len(seg) for seg in story_segments)
