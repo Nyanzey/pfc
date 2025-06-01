@@ -7,6 +7,7 @@ from diffusers import FluxPipeline, StableDiffusionPipeline, DiffusionPipeline, 
 from PIL import Image
 from io import BytesIO
 import requests
+import base64
 
 # Available text models: gpt, llama
 # Available image models: dall-e, stable diffusion
@@ -21,6 +22,7 @@ class ModelManager:
             self.openai_client = None
             self.ner_tokenizer = None
             self.ner_model = None
+            self.diffusion_api_link = None
         self.setup_models()
 
     def setup_models(self):
@@ -60,6 +62,11 @@ class ModelManager:
         
         if self.config['Text-to-Image']['source'] == 'diffusion':
             self.set_diffusion_pipeline(self.config['Text-to-Image']['model'])
+
+        if self.config['Text-to-Image']['source'] == 'diffusion-api':
+            self.diffusion_api_link = self.config['Text-to-Image']['diffusion_api_link']
+            if not self.diffusion_api_link:
+                raise Exception("Diffusion API link is not set in the configuration")
         
         # Setting NER model
         if self.config['Segment Method'] == "feature-based":
@@ -241,6 +248,23 @@ class ModelManager:
             print("Invalid model for stable diffusion")
             image = Image.open('./black.png')
             return image
+        
+    def query_image_diffusion_api(self, prompt):
+        if not self.diffusion_api_link:
+            raise Exception("Diffusion API link is not set in the configuration")
+        
+        res = requests.post(self.diffusion_api_link, json={"prompt": prompt})
+
+        data = res.json()
+
+        if "image_base64" in data:
+            image_data = base64.b64decode(data["image_base64"])
+            image = Image.open(BytesIO(image_data))
+            return image
+        else:
+            print("Error:", data)
+
+        return None
 
     def text_query(self, user_prompt, system_prompt):
         if self.config['Text-to-Text']['source'] == 'openai':
@@ -264,6 +288,11 @@ class ModelManager:
         elif self.config['Text-to-Image']['source'] == 'diffusion':
             print(f'Querying image in sd with prompt: {prompt}')
             img = self.query_image_sd(prompt)
+            img.save(save_path, format=img_format)
+            return True
+        elif self.config['Text-to-Image']['source'] == 'diffusion-api':
+            print(f'Querying image in diffusion API with prompt: {prompt}')
+            img = self.query_image_diffusion_api(prompt)
             img.save(save_path, format=img_format)
             return True
         return False

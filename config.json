@@ -5,10 +5,11 @@
         "requires_key": true
     },
     "Text-to-Image": {
-        "source": "diffusion",
+        "source": "diffusion-api",
         "model": "sd-legacy/stable-diffusion-v1-5",
         "requires_key": false,
-        "Summarize Prompt": false
+        "Summarize Prompt": false,
+        "diffusion_api_link": "http://lb-address:5000/generate"
     },
     "Language": "en",
     "Segment Method": "llm_chunk",

@@ -21,6 +21,9 @@ import open_clip
 from torch.nn.functional import cosine_similarity
 import threading
 from queue import Queue
+import requests
+import base64
+from io import BytesIO
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -219,33 +222,15 @@ def get_similarity(image_path, prompt, model_name):
 
     return sim, text_probs
 
-# Load model once
-pipe = StableDiffusionPipeline.from_pretrained("sd-legacy/stable-diffusion-v1-5").to("cuda")
+prompt = "A beautiful futuristic cityscape at sunset"
 
-def worker(prompt_queue, result_queue):
-    while True:
-        prompt = prompt_queue.get()
-        if prompt is None:
-            break
-        with torch.no_grad():
-            image = pipe(prompt).images[0]
-        result_queue.put(image)
+_port = int(os.environ.get("FLASK_PORT", 5000))
+res = requests.post(f"http://lb-server:5000/generate", json={"prompt": prompt})
+data = res.json()
 
-# Setup
-prompt_queue = Queue()
-result_queue = Queue()
-threads = [threading.Thread(target=worker, args=(prompt_queue, result_queue)) for _ in range(1)]
-
-# Start threads
-for t in threads:
-    t.start()
-
-# Add prompts
-for prompt in ["a castle on a hill", "a futuristic city"]:
-    prompt_queue.put(prompt)
-
-# Shutdown
-for _ in threads:
-    prompt_queue.put(None)
-for t in threads:
-    t.join()
+if "image_base64" in data:
+    image_data = base64.b64decode(data["image_base64"])
+    image = Image.open(BytesIO(image_data))
+    image.show()  # or image.save("output.png")
+else:
+    print("Error:", data)

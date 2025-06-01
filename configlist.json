@@ -5,10 +5,11 @@
         "requires_key": [true, false] 
     },
     "Text-to-Image": {
-        "source": ["openai", "diffusion"],
+        "source": ["openai", "diffusion", "diffusion-api"],
         "model": ["dall-e-2", "dall-e-3", "black-forest-labs/FLUX.1-schnell", "sd-legacy/stable-diffusion-v1-5", "stabilityai/stable-diffusion-xl-base-1.0"],
         "requires_key": [true, false],
-        "Summarize Prompt": [true, false, "In case of using clip text encoder with 77 token limit, set to true"] 
+        "Summarize Prompt": [true, false, "In case of using clip text encoder with 77 token limit, set to true"],
+        "diffusion_api_link": "link to the API endpoint for text-to-image generation" 
     },
     "Language": ["en", "es"],
     "Segment Method": ["llm_whole", "llm_chunk", "feature-based"],

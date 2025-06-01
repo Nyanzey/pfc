@@ -10,6 +10,7 @@ import videoAssembler as VA
 import evaluate as eval
 from myapi import ModelManager
 from Logger import Logger
+import time
 
 # Utilities
 from PIL import Image
@@ -25,7 +26,14 @@ from sentence_transformers import SentenceTransformer
 log_dir = './logs'
 logger = Logger(log_dir)
 
+def log_time(start_time, step_name):
+    elapsed_time = time.time() - start_time
+    logger.log(f'{step_name} took {elapsed_time:.2f} seconds')
+
 # Step 1 and 2
+global_timme = time.time()
+start_time = time.time()
+logger.log('Execution started at: ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
 logger.log('Entering step 1 and 2')
 
 input_path = "./input/chamberofsecrets.txt"
@@ -47,6 +55,9 @@ logger.log(f'Total segments: {len(info_extractor.segments)}')
 
 logger.log('Finished step 1 and 2')
 
+log_time(start_time, 'Step 1 and 2')
+start_time = time.time()
+
 if (input("continue? (y/n): ") != 'y'):
     exit()
 
@@ -61,11 +72,14 @@ stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingua
 scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, model_manager, logger)
 
 image_format = 'png'
-scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.3, max_generations=0, num_threads=1) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
+scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.3, max_generations=0, num_threads=3) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
 scene_generator.save_prompts()
 scene_generator.info_extractor.save_all()
 
 logger.log('Finished step 3 and 4')
+
+log_time(start_time, 'Step 3 and 4')
+start_time = time.time()
 
 if (input("continue? (y/n): ") != 'y'):
     exit()
@@ -91,6 +105,9 @@ logger.log(f'Best tts: {best_tts_name}')
 
 logger.log('Finished step 5')
 
+log_time(start_time, 'Step 5')
+start_time = time.time()
+
 if (input("continue? (y/n): ") != 'y'):
     exit()
 
@@ -108,6 +125,9 @@ for i in range(len(info_extractor.segments)):
 VA.create_narrative_video(images, audios, output_path)
 
 logger.log('Finished step 6')
+
+log_time(start_time, 'Step 6')
+logger.log('Total execution time: ' + str(time.time() - global_timme) + ' seconds')
 
 logger.log('Evaluating CM ...')
 
