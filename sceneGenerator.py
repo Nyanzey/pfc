@@ -53,6 +53,10 @@ class SceneGenerator:
         if not image_prompt:
             image_prompt = segment['prompt']
         return image_prompt
+    
+    def get_image_refined_prompt(self, last_prompt, description, image):
+        
+        return ""
 
     def generate_image(self, prompt, save_path, img_format, segment, segment_index, threshold=0.7, max_generations=1):
         self.model_manager.image_query(prompt, save_path, img_format)

@@ -45,6 +45,7 @@ class InfoExtractor:
         self.DC = []
         self.segments = None
         self.logger = logger
+        self.image_style = None
 
         if config_path:
             with open(config_path, 'r') as file:
@@ -99,6 +100,13 @@ class InfoExtractor:
             if scene_match:
                 parsed_data["scene"] = scene_match.group(1).strip()
 
+            # Style extraction
+            scene_pattern = r'(?i)\[style\]\((.*?)\)'
+            scene_match = re.search(scene_pattern, response)
+            if scene_match:
+                if not self.image_style:
+                    self.image_style = scene_match.group(1).strip()
+
             return parsed_data
 
         else:
@@ -142,6 +150,8 @@ class InfoExtractor:
                         desc = char_scene_match.group(2).strip()
                         if name.lower() == "scene":
                             current_entry["dc"]["scene"] = desc
+                        elif name.lower() == "style" and not self.image_style:
+                            self.image_style = desc
                         else:
                             current_entry["dc"]["characters"][name] = desc
 
@@ -172,8 +182,10 @@ class InfoExtractor:
         pattern = r'final prompt: "(.*?)"'
         match = re.search(pattern, response)
 
+        prompt = f"Given this image style: {self.image_style}. \n Generate an image for the following description: {match.group(1).strip()}"
+
         if match:
-            return match.group(1).strip()
+            return prompt
         else:
             return None
     
@@ -197,6 +209,9 @@ class InfoExtractor:
 
                 if "scene" in last_dict:
                     result.append(f"[Scene]({last_dict['scene']})")
+
+                if self.image_style:
+                    result.append(f"[Style]({self.image_style})")
                 result.append("\n")
             return "\n".join(result)
 

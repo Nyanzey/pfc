@@ -1,7 +1,7 @@
 {
     "Text-to-Text": {
         "source": "openai",
-        "model": "gpt-4o",
+        "model": "gpt-4o-mini",
         "requires_key": true
     },
     "Text-to-Image": {
@@ -13,5 +13,5 @@
     },
     "Language": "en",
     "Segment Method": "llm_chunk",
-    "Context_Length": 50
+    "Context_Length": 30
 }

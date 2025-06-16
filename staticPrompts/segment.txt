@@ -17,7 +17,7 @@ Appearance: A noticeable change in the physical appearance or clothing of a char
 
 - Update Context:
 
-Continuously update and provide the current context of the story based on events described in the fragments.
+Provide a summary of what happened of the story after defining all segments.
 
 # Considerations:
 
@@ -27,9 +27,13 @@ Continuously update and provide the current context of the story based on events
 
 - Specificity: Avoid generic references like "a man" or "a woman"; use the provided character names.
 
+- Only one context summary: There should only be one context summary after defining all segments in the specified format.
+
 # Output format
 
-[<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[Context](<updated context>)
+[<first fragment>][<change in appearance>-<change in scene>](<text to image prompt>)[<second fragment>][<change in appearance>-<change in scene>](<text to image prompt>)
+
+[Context](<updated context>)
 
 # Example:
 
@@ -43,7 +47,9 @@ The dog was walking by the river, when suddenly a bird fell from the bridge.
 
 - Response:
 
-[The dog was walking by the river,][NO-NO](A dog walking along a peaceful river on a sunny afternoon in California)[when suddenly a bird fell from the bridge.][NO-YES](A startled dog witnessing a bird falling from a bridge into the river below)[Context](The dog is by the river, and a bird has just fallen from the bridge into the river.)
+[The dog was walking by the river,][NO-NO](A dog walking along a peaceful river on a sunny afternoon in California)[when suddenly a bird fell from the bridge.][NO-YES](A startled dog witnessing a bird falling from a bridge into the river below)
+
+[Context](The dog is by the river, and a bird has just fallen from the bridge into the river.)
 
 # Prompt:
 
