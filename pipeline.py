@@ -36,7 +36,7 @@ start_time = time.time()
 logger.log('Execution started at: ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
 logger.log('Entering step 1 and 2')
 
-input_path = "./input/chamberofsecrets.txt"
+input_path = "./input/lena.txt"
 config_path = "./config.json"
 save_path = "./dynamicPrompts"
 output_audio_path = "./audios"
@@ -72,7 +72,7 @@ stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingua
 scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, model_manager, logger)
 
 image_format = 'png'
-scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.3, max_generations=0, num_threads=3) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
+scene_generator.generate_scenes(img_format=image_format, similarity_threshold=0.3, max_generations=0, num_threads=1) # Similarity value of 0.3 and above seems to be considered good based on some papers, looking for a standard metric would be ideal though
 scene_generator.save_prompts()
 scene_generator.info_extractor.save_all()
 

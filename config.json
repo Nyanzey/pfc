@@ -1,17 +1,17 @@
 {
     "Text-to-Text": {
         "source": "openai",
-        "model": "gpt-4o-mini",
+        "model": "gpt-4o",
         "requires_key": true
     },
     "Text-to-Image": {
-        "source": "diffusion-api",
-        "model": "sd-legacy/stable-diffusion-v1-5",
-        "requires_key": false,
+        "source": "openai",
+        "model": "gpt-image-1",
+        "requires_key": true,
         "Summarize Prompt": false,
         "diffusion_api_link": "http://lb-address:5000/generate"
     },
     "Language": "en",
     "Segment Method": "llm_chunk",
-    "Context_Length": 30
+    "Context_Length": 50
 }

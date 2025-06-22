@@ -9,6 +9,7 @@ import open_clip
 from threading import Thread
 from queue import Queue
 import time
+import base64
 
 class SceneGenerator:
     def __init__(self, config_path=None, save_path=None, output_image_path=None, info_extractor:IE.InfoExtractor=None, model_manager:myapi.ModelManager=None, logger=None):
@@ -54,9 +55,29 @@ class SceneGenerator:
             image_prompt = segment['prompt']
         return image_prompt
     
-    def get_image_refined_prompt(self, last_prompt, description, image):
+    def get_image_refined_prompt(self, last_prompt, coherence, segment_index, image):
+        min_char = ''
+        min_coherence = 1.0
+        for char, score in coherence.items():
+            if score < min_coherence:
+                min_coherence = score
+                min_char = char
         
-        return ""
+        if self.logger:
+            self.logger.log(f'Character with lowest coherence: {min_char} ({min_coherence})')
+        
+        char_description = self.info_extractor.DC[self.info_extractor.get_dict_version(segment_index)]['dc']['characters'].get(min_char, '')
+        
+        input_dict = {
+            'description': char_description,
+            'prompt': last_prompt
+        }
+
+        compose_prompt = self.info_extractor.format_prompt('refineImage', input_dict)
+        compose_raw = self.model_manager.text_query(compose_prompt, 'You are a story analyzer.', image)
+        image_prompt = self.info_extractor.parse_final_prompt(compose_raw.lower())
+
+        return image_prompt if image_prompt else last_prompt
 
     def generate_image(self, prompt, save_path, img_format, segment, segment_index, threshold=0.7, max_generations=1):
         self.model_manager.image_query(prompt, save_path, img_format)
@@ -74,8 +95,11 @@ class SceneGenerator:
         while coherence["avg"] < threshold and generations < max_generations:
             if self.logger:
                 self.logger.log("Regenerating ...")
-            #prompt = self.get_image_prompt(segment, id)
-            prompt = "A dog walking in the park"  # Placeholder for testing
+
+            #prompt = "A dog walking in the park"  # Placeholder for testing
+            with open(save_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            prompt = self.get_image_refined_prompt(prompt, coherence, segment_index, base64_image)
 
             # Generates and saves the image
             self.model_manager.image_query(prompt, save_path, img_format)
@@ -130,8 +154,8 @@ class SceneGenerator:
             dummy_img = Image.open('./black.png')
             
             try:
-                #prompt = self.get_image_prompt(segment, i)
-                prompt = "A dog walking in the park"  # Placeholder for testing
+                prompt = self.get_image_prompt(segment, i)
+                #prompt = "A dog walking in the park"  # Placeholder for testing
                 buffer_prompts[i] = prompt  # Use index to avoid race conditions
                 if self.logger:
                     self.logger.log(f'[Segment-{i}] Generating: {prompt}')

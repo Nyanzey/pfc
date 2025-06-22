@@ -69,6 +69,9 @@ class InfoExtractor:
             prompt = prompt.replace("![context]", input["context"])
         elif type == "identifyCharsInP":
             prompt = prompt.replace("![paragraph]", input["paragraph"])
+        elif type == "refineImage":
+            prompt = prompt.replace("![description]", input["description"])
+            prompt = prompt.replace("![prompt]", input["prompt"])
         else:
             prompt = prompt.replace("![descriptions]", input["descriptions"])
             prompt = prompt.replace("![segment]", input["segment"])
