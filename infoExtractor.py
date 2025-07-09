@@ -55,6 +55,8 @@ class InfoExtractor:
             if not os.path.exists(self.save_path):
                 os.mkdir(self.save_path)
 
+        self.logger.log(f'Config: {json.dumps(self.config, indent=4)}')
+
     def format_prompt(self, type, input):
         with open(f"./staticPrompts/{type}.txt", 'r') as file:
             prompt = file.read()
@@ -91,7 +93,7 @@ class InfoExtractor:
             characters = re.findall(character_pattern, response)
 
             for name, description in characters:
-                parsed_data["characters"][name] = description.strip()
+                parsed_data["characters"][name.lower()] = description.strip()
 
             # Remove misparsed scene
             parsed_data["characters"].pop('scene', None)
@@ -185,9 +187,8 @@ class InfoExtractor:
         pattern = r'final prompt: "(.*?)"'
         match = re.search(pattern, response)
 
-        prompt = f"Given this image style: {self.image_style}. \n Generate an image for the following description: {match.group(1).strip()}"
-
         if match:
+            prompt = f"Given this image style: {self.image_style}. \n Generate an image for the following description: {match.group(1).strip()}"
             return prompt
         else:
             return None
@@ -293,6 +294,7 @@ class InfoExtractor:
                 updatedDC_raw = self.model_manager.text_query(update_prompt, 'You are a story analyzer.')
 
                 updatedDC = self.parse_info(updatedDC_raw)
+                updatedDC = {k.lower(): v for k, v in updatedDC.items()}
                 temp = self.DC[-1]['dc']
                 if "characters" in updatedDC:
                     for character, description in updatedDC["characters"].items():

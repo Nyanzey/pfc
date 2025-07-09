@@ -5,13 +5,13 @@
         "requires_key": true
     },
     "Text-to-Image": {
-        "source": "openai",
-        "model": "gpt-image-1",
-        "requires_key": true,
+        "source": "diffusion-api",
+        "model": "sd-legacy/stable-diffusion-v1-5",
+        "requires_key": false,
         "Summarize Prompt": false,
-        "diffusion_api_link": "http://lb-address:5000/generate"
+        "diffusion_api_link": "http://web-lb-132736365.us-east-1.elb.amazonaws.com:5000/generate"
     },
     "Language": "en",
     "Segment Method": "llm_chunk",
-    "Context_Length": 50
+    "Context_Length": 10
 }

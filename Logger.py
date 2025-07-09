@@ -13,7 +13,7 @@ class Logger:
 
 
     def log(self, message):
-        with open(self.log_file, 'a') as f:
+        with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(f'<{self.count}> [{datetime.now().strftime("%c")}] :' + str(message) + '\n')
             self.count += 1
             

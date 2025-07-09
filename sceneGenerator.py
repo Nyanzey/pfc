@@ -8,7 +8,6 @@ import torch
 import open_clip
 from threading import Thread
 from queue import Queue
-import time
 import base64
 
 class SceneGenerator:
@@ -79,7 +78,7 @@ class SceneGenerator:
 
         return image_prompt if image_prompt else last_prompt
 
-    def generate_image(self, prompt, save_path, img_format, segment, segment_index, threshold=0.7, max_generations=1):
+    def generate_image(self, prompt, save_path, img_format, segment, segment_index, threshold=0.3, max_generations=0):
         self.model_manager.image_query(prompt, save_path, img_format)
         print(f'Image query done {save_path}')
         image = Image.open(save_path)
@@ -90,9 +89,10 @@ class SceneGenerator:
         coherence = self.get_coherence(image, segment_index, prompt)
         if self.logger:
             self.logger.log(f'Avg Coherence: {coherence["avg"]}')
+            self.logger.log(f'Min Coherence: {coherence["min"]}')
 
         generations = 0
-        while coherence["avg"] < threshold and generations < max_generations:
+        while coherence["min"] < threshold and generations < max_generations:
             if self.logger:
                 self.logger.log("Regenerating ...")
 
@@ -112,11 +112,9 @@ class SceneGenerator:
             generations += 1
         return prompt
 
-    def get_similarity(self, image, prompt):
-            image = self.clip_preprocess(image).unsqueeze(0).to(self.device)
+    def get_similarity(self, image_features, prompt):
             text = self.clip_tokenizer(prompt).to(self.device)
             with torch.no_grad(), torch.amp.autocast('cuda'):
-                image_features = self.clip_model.encode_image(image)
                 text_features = self.clip_model.encode_text(text)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
                 text_features /= text_features.norm(dim=-1, keepdim=True)
@@ -129,11 +127,23 @@ class SceneGenerator:
     def get_coherence(self, image, segment_index, prompt):
         scores = {}
         local_DC = self.info_extractor.DC[self.info_extractor.get_dict_version(segment_index)]['dc']
+
+        image = self.clip_preprocess(image).unsqueeze(0).to(self.device)
+        with torch.no_grad(), torch.amp.autocast('cuda'):
+            image_features = self.clip_model.encode_image(image)
+        
         for char, desc in local_DC['characters'].items():
-            scores[char], _ = self.get_similarity(image, desc)
-        scores['scene'], _ = self.get_similarity(image, local_DC['scene'])
-        scores['prompt'], _ = self.get_similarity(image, prompt)
+            char_sim, _ = self.get_similarity(image_features, desc)
+            if char_sim > 0.2:
+                scores[char] = char_sim
+
+        character_scores = scores.copy()
+        
+        scores['scene'], _ = self.get_similarity(image_features, local_DC['scene'])
+        scores['prompt'], _ = self.get_similarity(image_features, prompt)
         scores['avg'] = sum(scores.values()) / len(scores)
+        scores['min'] = min(character_scores.values())
+        self.logger.log(f'Scores for segment {segment_index}: {scores}')
         return scores
 
     def _scene_worker(self, task_queue, result_prompts, buffer_prompts, img_format, similarity_threshold, max_generations):
@@ -206,9 +216,9 @@ class SceneGenerator:
 
     def save_prompts(self):
         if self.prompts['final']:
-            with open(self.save_path + '/final_prompts.txt', 'w') as file:
+            with open(self.save_path + '/final_prompts.txt', 'w', encoding='utf-8') as file:
                 file.writelines(s + '\n' for s in self.prompts['final'])
 
         if self.prompts['buffer']:
-            with open(self.save_path + '/buffer_prompts.txt', 'w') as file:
+            with open(self.save_path + '/buffer_prompts.txt', 'w', encoding='utf-8') as file:
                 file.writelines(s + '\n' for s in self.prompts['buffer'])

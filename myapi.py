@@ -8,6 +8,7 @@ from PIL import Image
 from io import BytesIO
 import requests
 import base64
+from diffusers import StableDiffusion3Pipeline
 
 # Available text models: gpt, llama
 # Available image models: dall-e, stable diffusion
@@ -97,6 +98,13 @@ class ModelManager:
                 variant="fp16"
             ).to("cuda")
             self.image_model = "sdxl"
+        elif model == "stabilityai/stable-diffusion-3.5-medium":
+            self.image_pipe = StableDiffusion3Pipeline.from_pretrained(
+                "stabilityai/stable-diffusion-3.5-medium",
+                torch_dtype=torch.bfloat16,
+                token='' # Make sure to put your toke here
+            ).to("cuda")
+            self.image_model = "sd35m"
         else:
             # In case of invalid model, stop execution
             raise Exception("Invalid model for stable diffusion")
@@ -275,6 +283,14 @@ class ModelManager:
                 generator=torch.Generator("cpu").manual_seed(0)
             ).images[0]
             return image
+        elif self.image_model == "sd35m":
+            image = self.image_pipe(
+                prompt=prompt,
+                num_inference_steps=60,
+                guidance_scale=7.5,
+                max_sequence_length=512
+            ).images[0]
+            return image
         else:
             print("Invalid model for stable diffusion")
             image = Image.open('./black.png')
@@ -284,18 +300,31 @@ class ModelManager:
         if not self.diffusion_api_link:
             raise Exception("Diffusion API link is not set in the configuration")
         
-        res = requests.post(self.diffusion_api_link, json={"prompt": prompt})
+        payload = {
+            "prompt": prompt,
+            "inference_steps": 60,
+            "guidance_scale": 7.5,
+            "max_sequence_length": 512
+        }
 
-        data = res.json()
+        max_retries = 5
+        for i in range(max_retries):
+            res = requests.post(self.diffusion_api_link, json=payload)
+            try:
+                data = res.json()
+                if "image_base64" in data:
+                    break
+            except:
+                self.logger.log(f'Tried diffusion api: {i+1}')
+                continue
 
         if "image_base64" in data:
             image_data = base64.b64decode(data["image_base64"])
             image = Image.open(BytesIO(image_data))
             return image
         else:
-            print("Error:", data)
-
-        return None
+            print("Error querying diffusion api:", data)
+            return None
 
     def text_query(self, user_prompt, system_prompt, image=None):
         if self.config['Text-to-Text']['source'] == 'openai':

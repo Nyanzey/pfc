@@ -17,9 +17,6 @@ from PIL import Image
 import os
 import re
 
-# For image captioning and similarity
-from transformers import BlipProcessor, BlipForConditionalGeneration
-
 # Sentence transformer
 from sentence_transformers import SentenceTransformer
 
@@ -36,18 +33,23 @@ start_time = time.time()
 logger.log('Execution started at: ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
 logger.log('Entering step 1 and 2')
 
-input_path = "./input/lena.txt"
+input_path = "./inputDone/achristmascarol.txt"
 config_path = "./config.json"
 save_path = "./dynamicPrompts"
 output_audio_path = "./audios"
 output_image_path = "./images"
 
+logger.log(f'Input: {input_path}')
+
 model_manager = ModelManager(config_path, logger=logger)
 
 info_extractor = IE.InfoExtractor(input_path, config_path, save_path, model_manager, logger)
-info_extractor.get_characteristics(regenerate_always=False)
-info_extractor.segment_story(regenerate_always=False, segment_method=info_extractor.llm_part_segment)
-#info_extractor.process_changes() # When using buffered info, this is not needed
+info_extractor.get_characteristics(regenerate_always=True)
+info_extractor.segment_story(regenerate_always=True, segment_method=info_extractor.llm_part_segment)
+
+print(f"Number of segments: {len(info_extractor.segments)}")
+
+info_extractor.process_changes()
 info_extractor.save_all()
 
 logger.log(f'DC length: {len(info_extractor.DC)}')
@@ -64,10 +66,6 @@ if (input("continue? (y/n): ") != 'y'):
 logger.log('Entering step 3 and 4')
 
 # Step 3 and 4
-
-img_captioning_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-img_captioning_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
-stc_model = SentenceTransformer('sentence-transformers/clip-ViT-B-32-multilingual-v1')
 
 scene_generator = SG.SceneGenerator(config_path, save_path, output_image_path, info_extractor, model_manager, logger)
 
@@ -93,7 +91,8 @@ for segment in scene_generator.info_extractor.segments:
     fragments.append(re.sub(pattern, '', segment['fragment']))
 
 # for spanish: "tts_models/spa/fairseq/vits"
-audio_models = ['tts_models/en/ljspeech/neural_hmm', 'tts_models/en/ljspeech/overflow']
+# for english: 'tts_models/en/ljspeech/neural_hmm', 'tts_models/en/ljspeech/overflow'
+audio_models = ["tts_models/spa/fairseq/vits"]
 
 audio_generator = AG.AudioGenerator(audio_models, output_audio_path, logger)
 
@@ -113,16 +112,17 @@ if (input("continue? (y/n): ") != 'y'):
 
 logger.log('Entering step 6')
 
-# Step 6
-images = []  
-audios = []  
-output_path = f'./output/' + input("Name for output video: ") + '.mp4'
+if (input("generate video? (y/n): ") == 'y'):
+    # Step 6
+    images = []  
+    audios = []  
+    output_path = f'./output/' + input("Name for output video: ") + '.mp4'
 
-for i in range(len(info_extractor.segments)):
-    images.append(f'./images/{str(i).zfill(3)}.{image_format}')
-    audios.append(f'./audios/{best_tts_name}/audio_fragment_{i}.wav')
+    for i in range(len(info_extractor.segments)):
+        images.append(f'./images/{str(i).zfill(3)}.{image_format}')
+        audios.append(f'./audios/{best_tts_name}/audio_fragment_{i}.wav')
 
-VA.create_narrative_video(images, audios, output_path)
+    VA.create_narrative_video(images, audios, output_path)
 
 logger.log('Finished step 6')
 
@@ -133,12 +133,21 @@ logger.log('Evaluating CM ...')
 
 # Evaluation
 
+def get_prompts(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+    prompts = []
+    for i in range(0, len(lines), 2):
+        if i + 1 < len(lines):
+            prompt = lines[i].strip() + " " + lines[i + 1].strip()
+            prompts.append(prompt)
+    return prompts
+
 eval_prompts = scene_generator.prompts['final']
 if len(eval_prompts) < len(info_extractor.segments):
     eval_prompts = scene_generator.prompts['buffer']
 if not eval_prompts:
-    with open(scene_generator.save_path + '/buffer_prompts.txt', 'r') as file:
-        eval_prompts = file.readlines()
+    eval_prompts = get_prompts(scene_generator.save_path + '/buffer_prompts.txt')
 
 evaluator = eval.Evaluation(0.5, 0.25, 0.25, scene_generator, scene_generator.logger)
 val_images = []

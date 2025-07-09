@@ -1,11 +1,11 @@
-Analyze the attached image and compare it to the following character and scene description. Identify any inconsistencies between the character’s appearance in the image and the description. Suggest specific visual refinements or provide a revised image prompt that would better match the intended character, style, and setting.
+Analyze the attached image and compare it to the following character and scene description. Identify any inconsistencies between the character’s appearance in the image and the description. Suggest a revised image prompt that would better match the intended character, style, and setting.
 
 Character description:
 ![description]
 
-Original image prompt/style description:
+Original image prompt:
 ![prompt]
 
-Focus on correcting any mismatched traits (e.g., hair, eyes, outfit, posture) while preserving the original mood, lighting, and style (e.g., semi-realistic, soft lighting, muted palette, foggy early morning). Return a revised prompt suitable for image generation with DALL·E 3, capturing the corrected character and environment in consistent style. The output format is the following:
+Focus on correcting any mismatched traits (e.g., hair, eyes, outfit, posture) while preserving the original mood, lighting, and style (e.g., semi-realistic, soft lighting, muted palette, foggy early morning). Return a revised prompt suitable for image generation, capturing the corrected character and environment in consistent style. You must only include the revised prompt with the following format:
 
 final prompt: "<final prompt>"
